@@ -27,7 +27,7 @@ export default function Login() {
   const onSubmit = async (data: LoginRequest) => {
     try {
       const response = await login(data);
-      localStorage.setItem("token", response.token);
+      localStorage.setItem("token", response.accessToken);
       navigate("/profile"); // Redirect after successful login
     } catch (error: any) {
       setErrorMessage(

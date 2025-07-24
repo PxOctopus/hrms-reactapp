@@ -23,12 +23,9 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
-  user: {
-    id: number;
-    email: string;
-    role: string;
-  };
+  accessToken: string;
+  role: string;
+  tokenType: string;
 }
 
 export interface ForgotPasswordRequest {

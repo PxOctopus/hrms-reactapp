@@ -1,14 +1,10 @@
 import axios from "axios";
 
-// Backend base URL
 const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:9090/api";
 
-// Create an Axios instance with default configuration
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  //  headers: { "Content-Type": "application/json" }, move to interceptor
 });
 
 // Add Authorization token to every request if available
@@ -18,12 +14,13 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers["Content-Type"] = "application/json";
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Handle global response errors 
+// Handle global 401s
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {

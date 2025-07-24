@@ -11,8 +11,25 @@ import {
 
 // Login
 export async function login(data: LoginRequest): Promise<LoginResponse> {
-  const response = await axios.post("/auth/login", data);
-  return response.data;
+  try {
+    const response = await axios.post<LoginResponse>("/auth/login", data);
+    
+    console.log("🔍 Full login response:", response.data);
+
+    const loginResponse = response.data;
+
+    if (loginResponse.accessToken) {
+      localStorage.setItem("token", loginResponse.accessToken);
+      console.log("✅ Token saved to localStorage:", loginResponse.accessToken);
+    } else {
+      console.warn("⚠️ No token found in login response!");
+    }
+
+    return loginResponse;
+  } catch (error: any) {
+    console.error("❌ Login error:", error);
+    throw error;
+  }
 }
 
 // Register
