@@ -6,8 +6,10 @@ import {
   ForgotPasswordRequest,
   ResetPasswordRequest,
   VerifyEmailRequest,
+  VerifyEmailResponse,
   AuthResponse,
 } from "../types/Auth";
+import { UserProfile } from "../types/User";
 
 // Login
 export async function login(data: LoginRequest): Promise<LoginResponse> {
@@ -20,9 +22,9 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
 
     if (loginResponse.accessToken) {
       localStorage.setItem("token", loginResponse.accessToken);
-      console.log("✅ Token saved to localStorage:", loginResponse.accessToken);
+      console.log("Token saved to localStorage:", loginResponse.accessToken);
     } else {
-      console.warn("⚠️ No token found in login response!");
+      console.warn("No token found in login response!");
     }
 
     return loginResponse;
@@ -51,7 +53,7 @@ export async function resetPassword(data: ResetPasswordRequest) {
 }
 
 // Verify Email
-export async function verifyEmail(data: VerifyEmailRequest) {
+export async function verifyEmail(data: VerifyEmailRequest): Promise<VerifyEmailResponse> {
   const response = await axios.post("/auth/verify-email", data);
   return response.data;
 }

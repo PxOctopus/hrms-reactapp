@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { UserProfile } from "../../types/User";
 
 interface ProfileInfoProps {
@@ -5,10 +6,17 @@ interface ProfileInfoProps {
 }
 
 const ProfileInfo = ({ user }: ProfileInfoProps) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return isNaN(date.getTime())
-      ? "Invalid Date"
+      ? null
       : date.toLocaleDateString("en-GB", {
           year: "numeric",
           month: "long",
@@ -16,9 +24,19 @@ const ProfileInfo = ({ user }: ProfileInfoProps) => {
         });
   };
 
+  const formattedDate = formatDate(user.createdAt);
+
   return (
-    <div className="bg-white shadow-md rounded p-6 space-y-3">
-      <h2 className="text-2xl font-bold mb-4">Your Profile</h2>
+    <div className="bg-white shadow-md rounded p-6 space-y-3 relative">
+      {/* logout button */}
+      <button
+        onClick={handleLogout}
+        className="absolute top-4 left-4 px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
+      >
+        Log out
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4 text-center">Your Profile</h2>
 
       <p><strong>Full Name:</strong> {user.fullName}</p>
       <p><strong>Email:</strong> {user.email}</p>
@@ -34,17 +52,24 @@ const ProfileInfo = ({ user }: ProfileInfoProps) => {
               </span>
             )}
           </p>
-          <p>
-            <strong>Email Verified:</strong>{" "}
-            {user.emailVerified ? "Yes" : "No"}
-          </p>
-          <p>
-            <strong>Account Enabled:</strong>{" "}
-            {user.enabled ? "Yes" : "No"}
-          </p>
-          <p>
-            <strong>Registered On:</strong> {formatDate(user.createdAt)}
-          </p>
+
+          {user.emailVerified && (
+            <p>
+              <strong>Email Verified:</strong> Yes
+            </p>
+          )}
+
+          {user.enabled && (
+            <p>
+              <strong>Account Enabled:</strong> Yes
+            </p>
+          )}
+
+          {formattedDate && (
+            <p>
+              <strong>Registered On:</strong> {formattedDate}
+            </p>
+          )}
         </>
       )}
     </div>

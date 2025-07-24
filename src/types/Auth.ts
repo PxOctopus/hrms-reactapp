@@ -1,3 +1,4 @@
+import { UserProfile } from "../types/User";
 export interface RegisterRequest {
   fullName: string;
   email: string;
@@ -15,6 +16,11 @@ export interface AuthResponse {
 
 export interface VerifyEmailRequest {
   token: string;
+}
+
+export interface VerifyEmailResponse {
+  message: string;
+  user: UserProfile;
 }
 
 export interface LoginRequest {
