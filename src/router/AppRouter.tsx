@@ -8,15 +8,24 @@ import ProfileSettings from "../features/profile/ProfileSettings";
 import CompanyList from "../features/companies/CompanyList";
 import EmployeeList from "../features/employees/EmployeeList";
 import LeaveManagement from "../features/leaves/LeaveManagement";
-import ProtectedRoute from "./ProtectedRoute"; 
+import ProtectedRoute from "./ProtectedRoute";
+import { useAuth } from "../context/AuthContext";
 
 export default function AppRouter() {
+  const { user } = useAuth(); // Access user from context
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* Public routes with redirect if already logged in */}
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/profile" replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={user ? <Navigate to="/profile" replace /> : <Register />}
+        />
         <Route path="/verify" element={<EmailVerification />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -55,7 +64,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* Default redirect */}
+        {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

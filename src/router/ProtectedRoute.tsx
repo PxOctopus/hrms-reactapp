@@ -6,12 +6,15 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  // Get the token from localStorage
   const token = localStorage.getItem("token");
 
+  // If no token is found, redirect to login page
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
+  // If token exists, render the protected component
   return children;
 };
 

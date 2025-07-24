@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { UserProfile } from "../../types/User";
+import { useAuth } from "../../context/AuthContext";
 
 interface ProfileInfoProps {
   user: UserProfile;
@@ -7,12 +8,16 @@ interface ProfileInfoProps {
 
 const ProfileInfo = ({ user }: ProfileInfoProps) => {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
+  // Handle user logout
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setUser(null);
     navigate("/login");
   };
 
+  // Format date as "day month year"
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return isNaN(date.getTime())
@@ -28,7 +33,7 @@ const ProfileInfo = ({ user }: ProfileInfoProps) => {
 
   return (
     <div className="bg-white shadow-md rounded p-6 space-y-3 relative">
-      {/* logout button */}
+      {/* Logout button */}
       <button
         onClick={handleLogout}
         className="absolute top-4 left-4 px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"

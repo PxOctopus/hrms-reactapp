@@ -2,9 +2,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { login } from "../../lib/authApi";
+import { getCurrentUser } from "../../lib/userApi";
 import { LoginRequest } from "../../types/Auth";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 // Form validation schema
 const schema = z.object({
@@ -16,6 +18,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [errorMessage, setErrorMessage] = useState("");
 
   const {
@@ -24,12 +27,23 @@ export default function Login() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
+  // Handle form submission
   const onSubmit = async (data: LoginRequest) => {
     try {
+      // Call login API
       const response = await login(data);
+
+      // Save access token
       localStorage.setItem("token", response.accessToken);
-      navigate("/profile"); // Redirect after successful login
+
+      // Fetch current user using the token
+      const userData = await getCurrentUser();
+      setUser(userData);
+
+      // Redirect to profile
+      navigate("/profile");
     } catch (error: any) {
+      // Show error message
       setErrorMessage(
         error.response?.data?.message || "Login failed. Please try again."
       );
