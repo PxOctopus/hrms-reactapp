@@ -7,6 +7,7 @@ import ForgotPassword from "../features/auth/ForgotPassword";
 import ProfileSettings from "../features/profile/ProfileSettings";
 import CompanyList from "../features/companies/CompanyList";
 import EmployeeList from "../features/employees/EmployeeList";
+import EmployeeForm from "../features/employees/EmployeeForm";
 import LeaveManagement from "../features/leaves/LeaveManagement";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
@@ -55,6 +56,22 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/employees/new"
+          element={
+            <ProtectedRoute>
+              <EmployeeForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+  path="/employees/:id/edit"
+  element={
+    <ProtectedRoute>
+      <EmployeeForm />
+    </ProtectedRoute>
+  }
+/>
         <Route
           path="/leaves"
           element={
