@@ -1,20 +1,27 @@
 import React, { ReactElement } from "react";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 interface ProtectedRouteProps {
   children: ReactElement;
+  roles?: string[]; // Optional role-based access
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  // Get the token from localStorage
+const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   const token = localStorage.getItem("token");
+  const { user } = useAuth();
 
-  // If no token is found, redirect to login page
+  // Not logged in
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // If token exists, render the protected component
+  // Logged in but role not authorized
+  if (roles && (!user || !roles.includes(user.role))) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Authorized
   return children;
 };
 

@@ -48,34 +48,24 @@ const ProfileInfo = ({ user }: ProfileInfoProps) => {
       <p><strong>Role:</strong> {user.role}</p>
 
       {user.role !== "ADMIN" && (
-        <>
-          <p>
-            <strong>Company:</strong>{" "}
-            {user.companyName || (
-              <span className="text-yellow-600">
-                Pending - {user.pendingCompanyName || "N/A"}
-              </span>
-            )}
-          </p>
-
-          {user.emailVerified && (
-            <p>
-              <strong>Email Verified:</strong> Yes
-            </p>
+        <p>
+          <strong>Company:</strong>{" "}
+          {user.company ? (
+            <span className="text-green-600">
+              Approved - {user.company.companyName}
+            </span>
+          ) : (
+            <span className="text-yellow-600">
+              Pending - {user.pendingCompanyName || "N/A"}
+            </span>
           )}
+        </p>
+      )}
 
-          {user.enabled && (
-            <p>
-              <strong>Account Enabled:</strong> Yes
-            </p>
-          )}
-
-          {formattedDate && (
-            <p>
-              <strong>Registered On:</strong> {formattedDate}
-            </p>
-          )}
-        </>
+      {formattedDate && (
+        <p>
+          <strong>Registered On:</strong> {formattedDate}
+        </p>
       )}
     </div>
   );

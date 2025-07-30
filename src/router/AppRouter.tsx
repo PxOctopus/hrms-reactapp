@@ -9,6 +9,8 @@ import CompanyList from "../features/companies/CompanyList";
 import EmployeeList from "../features/employees/EmployeeList";
 import EmployeeForm from "../features/employees/EmployeeForm";
 import LeaveManagement from "../features/leaves/LeaveManagement";
+import PendingManagerList from "../features/admin/PendingManagerList";
+import Unauthorized from "../features/common/Unauthorized"; 
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 
@@ -18,7 +20,7 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes with redirect if already logged in */}
+        {/* Public routes */}
         <Route
           path="/login"
           element={user ? <Navigate to="/profile" replace /> : <Login />}
@@ -65,13 +67,13 @@ export default function AppRouter() {
           }
         />
         <Route
-  path="/employees/:id/edit"
-  element={
-    <ProtectedRoute>
-      <EmployeeForm />
-    </ProtectedRoute>
-  }
-/>
+          path="/employees/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EmployeeForm />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/leaves"
           element={
@@ -80,6 +82,19 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
+        {/* Admin route */}
+        <Route
+          path="/admin/pending-managers"
+          element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <PendingManagerList />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Unauthorized route */}
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/login" replace />} />

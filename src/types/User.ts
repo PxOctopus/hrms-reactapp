@@ -1,3 +1,8 @@
+export interface Company {
+  id: number;
+  companyName: string;
+}
+
 export interface UserProfile {
   id: number;
   fullName: string;
@@ -8,4 +13,12 @@ export interface UserProfile {
   emailVerified: boolean;
   enabled: boolean;
   createdAt: string;
+  company?: Company | null;
+}
+
+export interface PendingManager {
+  userId: number;
+  fullName: string;
+  email: string;
+  pendingCompanyName: string;
 }
