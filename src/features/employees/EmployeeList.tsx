@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  getAllEmployees,
   getPendingEmployees,
   approveEmployee,
   rejectEmployee,
   deleteEmployee,
-  toggleEmployeeStatus, 
+  toggleEmployeeStatus,
 } from "../../lib/employeeApi";
 import { Employee } from "../../types/Employee";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-// Initialize toast
-import { ToastContainer } from "react-toastify";
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -24,11 +22,11 @@ const EmployeeList = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch employees from API
+  // Fetch all employees from API
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const data = await getPendingEmployees();
+      const data = await getAllEmployees(); // fetch all manager-related employees
       setEmployees(data);
       setFilteredEmployees(data);
     } catch (error) {
@@ -38,21 +36,21 @@ const EmployeeList = () => {
     setLoading(false);
   };
 
-  // Filter employees by name and status
+  // Filter logic
   useEffect(() => {
     let filtered = employees;
 
     if (searchTerm) {
-      filtered = filtered.filter((employee) =>
-        employee.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((emp) =>
+        emp.fullName.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (statusFilter !== "ALL") {
-      filtered = filtered.filter((employee) => {
-        if (statusFilter === "ACTIVE") return employee.isActive && !employee.isPendingApprovalByManager;
-        if (statusFilter === "INACTIVE") return !employee.isActive && !employee.isPendingApprovalByManager;
-        if (statusFilter === "PENDING") return employee.isPendingApprovalByManager;
+      filtered = filtered.filter((emp) => {
+        if (statusFilter === "ACTIVE") return emp.isActive && !emp.isPendingApprovalByManager;
+        if (statusFilter === "INACTIVE") return !emp.isActive && !emp.isPendingApprovalByManager;
+        if (statusFilter === "PENDING") return emp.isPendingApprovalByManager;
         return true;
       });
     }
@@ -61,27 +59,27 @@ const EmployeeList = () => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, employees]);
 
-  // Approve employee
+  // Approve pending employee
   const handleApprove = async (id: number) => {
     try {
       await approveEmployee(id);
-      toast.success("Employee approved successfully.");
+      toast.success("Employee approved.");
       await fetchEmployees();
-    } catch (error) {
+    } catch (err) {
       toast.error("Approval failed.");
-      console.error("Approval error:", error);
+      console.error(err);
     }
   };
 
-  // Reject employee
+  // Reject pending employee
   const handleReject = async (id: number) => {
     try {
       await rejectEmployee(id);
       toast.info("Employee rejected.");
       await fetchEmployees();
-    } catch (error) {
+    } catch (err) {
       toast.error("Rejection failed.");
-      console.error("Rejection error:", error);
+      console.error(err);
     }
   };
 
@@ -90,66 +88,67 @@ const EmployeeList = () => {
     if (!window.confirm("Are you sure you want to delete this employee?")) return;
     try {
       await deleteEmployee(id);
-      toast.success("Employee deleted successfully.");
+      toast.success("Employee deleted.");
       await fetchEmployees();
-    } catch (error) {
+    } catch (err) {
       toast.error("Deletion failed.");
-      console.error("Delete error:", error);
+      console.error(err);
     }
   };
 
-  // Toggle active/passive status
+  // Toggle active/inactive status
   const handleToggleStatus = async (id: number) => {
     try {
       await toggleEmployeeStatus(id);
       toast.success("Employee status updated.");
       await fetchEmployees();
-    } catch (error) {
-      toast.error("Failed to update employee status.");
-      console.error("Toggle error:", error);
+    } catch (err) {
+      toast.error("Status update failed.");
+      console.error(err);
     }
   };
-
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentEmployees = filteredEmployees.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
 
   useEffect(() => {
     fetchEmployees();
   }, []);
 
+  // Pagination
+  const indexOfLast = currentPage * itemsPerPage;
+  const indexOfFirst = indexOfLast - itemsPerPage;
+  const currentEmployees = filteredEmployees.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Employee List</h2>
 
-      {/* Search input */}
-      <input
-        type="text"
-        placeholder="Search by name..."
-        className="mb-2 px-4 py-2 border border-gray-300 rounded w-full max-w-sm"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
+      <div className="flex flex-wrap gap-4 items-center mb-4">
+        <input
+          type="text"
+          placeholder="Search by name..."
+          className="px-4 py-2 border border-gray-300 rounded w-full max-w-xs"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
 
-      {/* Status filter */}
-      <select
-        className="ml-2 mb-4 px-4 py-2 border border-gray-300 rounded"
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-      >
-        <option value="ALL">All</option>
-        <option value="ACTIVE">Active</option>
-        <option value="INACTIVE">Inactive</option>
-        <option value="PENDING">Pending</option>
-      </select>
+        <select
+          className="px-4 py-2 border border-gray-300 rounded"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="ALL">All</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="PENDING">Pending</option>
+        </select>
 
-      <button
-        className="ml-4 mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        onClick={() => navigate("/employees/new")}
-      >
-        Add New Employee
-      </button>
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onClick={() => navigate("/employees/new")}
+        >
+          Add New Employee
+        </button>
+      </div>
 
       {loading ? (
         <p>Loading...</p>
@@ -157,7 +156,7 @@ const EmployeeList = () => {
         <p>No employees found.</p>
       ) : (
         <>
-          <table className="w-full border-collapse border border-gray-300">
+          <table className="w-full border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
                 <th className="border p-2">Name</th>
@@ -168,59 +167,56 @@ const EmployeeList = () => {
               </tr>
             </thead>
             <tbody>
-              {currentEmployees.map((employee) => (
-                <tr key={employee.id}>
-                  <td className="border p-2">{employee.fullName}</td>
-                  <td className="border p-2">{employee.email}</td>
-                  <td className="border p-2">{employee.position}</td>
+              {currentEmployees.map((emp) => (
+                <tr key={emp.id}>
+                  <td className="border p-2">{emp.fullName}</td>
+                  <td className="border p-2">{emp.email}</td>
+                  <td className="border p-2">{emp.position}</td>
                   <td className="border p-2">
-                    {employee.isPendingApprovalByManager
+                    {emp.isPendingApprovalByManager
                       ? "Pending"
-                      : employee.isActive
+                      : emp.isActive
                       ? "Active"
                       : "Inactive"}
                   </td>
                   <td className="border p-2 space-x-2">
-                    {!employee.isActive && (
-                      <button
-                        className="px-3 py-1 bg-yellow-500 text-white rounded"
-                        onClick={() => navigate(`/employees/edit/${employee.id}`)}
-                      >
-                        Edit
-                      </button>
-                    )}
-
-                    {employee.isPendingApprovalByManager && (
+                    {emp.isPendingApprovalByManager ? (
                       <>
                         <button
-                          className="px-3 py-1 bg-green-500 text-white rounded"
-                          onClick={() => handleApprove(employee.id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded"
+                          onClick={() => handleApprove(emp.id)}
                         >
                           Approve
                         </button>
                         <button
-                          className="px-3 py-1 bg-red-500 text-white rounded"
-                          onClick={() => handleReject(employee.id)}
+                          className="px-3 py-1 bg-red-600 text-white rounded"
+                          onClick={() => handleReject(emp.id)}
                         >
                           Reject
                         </button>
                       </>
-                    )}
-
-                    {!employee.isPendingApprovalByManager && (
-                      <button
-                        className={`px-3 py-1 text-white rounded ${
-                          employee.isActive ? "bg-gray-500" : "bg-green-600"
-                        }`}
-                        onClick={() => handleToggleStatus(employee.id)}
-                      >
-                        {employee.isActive ? "Deactivate" : "Activate"}
-                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="px-3 py-1 bg-yellow-500 text-white rounded"
+                          onClick={() => navigate(`/employees/edit/${emp.id}`)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className={`px-3 py-1 text-white rounded ${
+                            emp.isActive ? "bg-gray-500" : "bg-green-600"
+                          }`}
+                          onClick={() => handleToggleStatus(emp.id)}
+                        >
+                          {emp.isActive ? "Deactivate" : "Activate"}
+                        </button>
+                      </>
                     )}
 
                     <button
-                      className="px-3 py-1 bg-red-600 text-white rounded"
-                      onClick={() => handleDelete(employee.id)}
+                      className="px-3 py-1 bg-red-500 text-white rounded"
+                      onClick={() => handleDelete(emp.id)}
                     >
                       Delete
                     </button>
@@ -230,13 +226,15 @@ const EmployeeList = () => {
             </tbody>
           </table>
 
-          {/* Pagination controls */}
+          {/* Pagination */}
           <div className="mt-4 flex justify-center space-x-2">
             {Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i}
                 className={`px-3 py-1 rounded ${
-                  currentPage === i + 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-black"
+                  currentPage === i + 1
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-black"
                 }`}
                 onClick={() => setCurrentPage(i + 1)}
               >
@@ -247,7 +245,6 @@ const EmployeeList = () => {
         </>
       )}
 
-      {/* Toast notifications */}
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );

@@ -48,22 +48,24 @@ export default function EmployeeForm() {
     resolver: zodResolver(schema),
   });
 
-  // Fetch existing employee data if in edit mode
+  // Load employee data in edit mode
   useEffect(() => {
     if (isEditMode && id) {
       getEmployeeById(Number(id))
         .then((employee) => {
           reset({
-  position: employee.position,
-  contractType: employee.contractType as ContractType, // Casting to correct enum
-  phoneNumber: employee.phoneNumber || "",
-  address: employee.address || "",
-  salary: employee.salary ? employee.salary.toString() : "",
-  annualLeave: employee.annualLeave ? employee.annualLeave.toString() : "",
-  birthDate: employee.birthDate || "",
-  hireDate: employee.hireDate || "",
-  endDate: employee.endDate || ""
-});
+            position: employee.position,
+            contractType: employee.contractType as ContractType,
+            phoneNumber: employee.phoneNumber || "",
+            address: employee.address || "",
+            salary: employee.salary ? employee.salary.toString() : "",
+            annualLeave: employee.annualLeave
+              ? employee.annualLeave.toString()
+              : "",
+            birthDate: employee.birthDate || "",
+            hireDate: employee.hireDate || "",
+            endDate: employee.endDate || "",
+          });
         })
         .catch((error) => {
           toast.error("Failed to load employee.");
@@ -72,14 +74,14 @@ export default function EmployeeForm() {
     }
   }, [id, isEditMode, reset]);
 
-  // Submit handler for create or update
+  // Submit handler
   const onSubmit = async (data: FormData) => {
     try {
       const payload: EmployeeCreateRequest = {
         ...data,
         salary: parseFloat(data.salary),
         annualLeave: parseInt(data.annualLeave),
-         isPendingApprovalByManager: true,
+         isPendingApprovalByManager: false,
       };
 
       if (isEditMode && id) {
@@ -90,7 +92,6 @@ export default function EmployeeForm() {
         toast.success("Employee created successfully!");
       }
 
-      // Redirect after short delay to show toast
       setTimeout(() => {
         navigate("/employees");
       }, 1500);
@@ -176,7 +177,6 @@ export default function EmployeeForm() {
         </button>
       </form>
 
-      {/* Toast container for notifications */}
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
