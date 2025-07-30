@@ -7,7 +7,7 @@ import {
   rejectManagerCompany,
 } from "../../lib/adminApi";
 import {
-  getAllEmployees,
+  getPendingEmployees,
   approveEmployee,
   rejectEmployee,
 } from "../../lib/employeeApi";
@@ -32,11 +32,8 @@ const ProfileSettings = () => {
           const managers = await getPendingManagers();
           setPendingManagers(managers);
         } else if (userData.role === "MANAGER") {
-          const employees = await getAllEmployees();
-          const filtered = employees.filter(
-            (emp) => emp.isPendingApprovalByManager
-          );
-          setPendingEmployees(filtered);
+          const employees = await getPendingEmployees();
+          setPendingEmployees(employees);
         }
       } catch (error) {
         toast.error("Failed to load profile data");
@@ -74,11 +71,8 @@ const ProfileSettings = () => {
     try {
       await approveEmployee(id);
       toast.success("Employee approved successfully.");
-      const updated = await getAllEmployees();
-      const filtered = updated.filter(
-        (emp) => emp.isPendingApprovalByManager
-      );
-      setPendingEmployees(filtered);
+      const updated = await getPendingEmployees();
+      setPendingEmployees(updated);
     } catch (error) {
       toast.error("Employee approval failed.");
     }
@@ -88,11 +82,8 @@ const ProfileSettings = () => {
     try {
       await rejectEmployee(id);
       toast.success("Employee rejected.");
-      const updated = await getAllEmployees();
-      const filtered = updated.filter(
-        (emp) => emp.isPendingApprovalByManager
-      );
-      setPendingEmployees(filtered);
+      const updated = await getPendingEmployees();
+      setPendingEmployees(updated);
     } catch (error) {
       toast.error("Employee rejection failed.");
     }

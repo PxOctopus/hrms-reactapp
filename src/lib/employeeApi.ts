@@ -7,6 +7,11 @@ export const getAllEmployees = async (): Promise<Employee[]> => {
   return response.data;
 };
 
+export const getPendingEmployees = async (): Promise<Employee[]> => {
+  const response = await axios.get("/manager/employees/pending");
+  return response.data;
+};
+
 // Get single employee by ID
 export const getEmployeeById = async (id: number): Promise<Employee> => {
   const response = await axios.get(`/employees/${id}`);
@@ -37,12 +42,12 @@ export const deleteEmployee = async (id: number): Promise<void> => {
 
 // Approve employee
 export const approveEmployee = async (id: number): Promise<void> => {
-  await axios.post(`/employees/${id}/approve`);
+  await axios.post(`/manager/employees/${id}/approve`);
 };
 
 // Reject employee
 export const rejectEmployee = async (id: number): Promise<void> => {
-  await axios.post(`/employees/${id}/reject`);
+  await axios.post(`/manager/employees/${id}/reject`);
 };
 
 // Toggle employee status (active/inactive)

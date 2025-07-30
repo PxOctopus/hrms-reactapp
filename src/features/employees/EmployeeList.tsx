@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  getAllEmployees,
+  getPendingEmployees,
   approveEmployee,
   rejectEmployee,
   deleteEmployee,
@@ -28,7 +28,7 @@ const EmployeeList = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const data = await getAllEmployees();
+      const data = await getPendingEmployees();
       setEmployees(data);
       setFilteredEmployees(data);
     } catch (error) {
