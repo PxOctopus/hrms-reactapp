@@ -10,12 +10,12 @@ import EmployeeList from "../features/employees/EmployeeList";
 import EmployeeForm from "../features/employees/EmployeeForm";
 import LeaveManagement from "../features/leaves/LeaveManagement";
 import PendingManagerList from "../features/admin/PendingManagerList";
-import Unauthorized from "../features/common/Unauthorized"; 
+import Unauthorized from "../features/common/Unauthorized";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 
 export default function AppRouter() {
-  const { user } = useAuth(); // Access user from context
+  const { user } = useAuth();
 
   return (
     <BrowserRouter>
@@ -33,7 +33,7 @@ export default function AppRouter() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Protected routes */}
+        {/* Protected routes (accessible by all authenticated users) */}
         <Route
           path="/profile"
           element={
@@ -53,7 +53,7 @@ export default function AppRouter() {
         <Route
           path="/employees"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["MANAGER"]}>
               <EmployeeList />
             </ProtectedRoute>
           }
@@ -61,7 +61,7 @@ export default function AppRouter() {
         <Route
           path="/employees/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["MANAGER"]}>
               <EmployeeForm />
             </ProtectedRoute>
           }
@@ -69,7 +69,7 @@ export default function AppRouter() {
         <Route
           path="/employees/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["MANAGER"]}>
               <EmployeeForm />
             </ProtectedRoute>
           }
@@ -83,7 +83,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* Admin route */}
+        {/* Admin-only route */}
         <Route
           path="/admin/pending-managers"
           element={
@@ -93,10 +93,10 @@ export default function AppRouter() {
           }
         />
 
-        {/* Unauthorized route */}
+        {/* Unauthorized fallback */}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Catch-all route */}
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

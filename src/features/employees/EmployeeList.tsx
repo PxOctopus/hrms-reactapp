@@ -11,6 +11,7 @@ import {
 import { Employee } from "../../types/Employee";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useAuth } from "../../context/AuthContext";
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -21,12 +22,13 @@ const EmployeeList = () => {
   const itemsPerPage = 5;
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth(); // Access current user info
 
   // Fetch all employees from API
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const data = await getAllEmployees(); // fetch all manager-related employees
+      const data = await getAllEmployees();
       setEmployees(data);
       setFilteredEmployees(data);
     } catch (error) {
@@ -36,7 +38,7 @@ const EmployeeList = () => {
     setLoading(false);
   };
 
-  // Filter logic
+  // Apply search and filter
   useEffect(() => {
     let filtered = employees;
 
@@ -48,9 +50,9 @@ const EmployeeList = () => {
 
     if (statusFilter !== "ALL") {
       filtered = filtered.filter((emp) => {
-        if (statusFilter === "ACTIVE") return emp.isActive && !emp.isPendingApprovalByManager;
-        if (statusFilter === "INACTIVE") return !emp.isActive && !emp.isPendingApprovalByManager;
-        if (statusFilter === "PENDING") return emp.isPendingApprovalByManager;
+        if (statusFilter === "ACTIVE") return emp.active && !emp.pendingApprovalByManager;
+        if (statusFilter === "INACTIVE") return !emp.active && !emp.pendingApprovalByManager;
+        if (statusFilter === "PENDING") return emp.pendingApprovalByManager;
         return true;
       });
     }
@@ -59,7 +61,6 @@ const EmployeeList = () => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, employees]);
 
-  // Approve pending employee
   const handleApprove = async (id: number) => {
     try {
       await approveEmployee(id);
@@ -71,7 +72,6 @@ const EmployeeList = () => {
     }
   };
 
-  // Reject pending employee
   const handleReject = async (id: number) => {
     try {
       await rejectEmployee(id);
@@ -83,7 +83,6 @@ const EmployeeList = () => {
     }
   };
 
-  // Delete employee
   const handleDelete = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this employee?")) return;
     try {
@@ -96,7 +95,6 @@ const EmployeeList = () => {
     }
   };
 
-  // Toggle active/inactive status
   const handleToggleStatus = async (id: number) => {
     try {
       await toggleEmployeeStatus(id);
@@ -112,7 +110,6 @@ const EmployeeList = () => {
     fetchEmployees();
   }, []);
 
-  // Pagination
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentEmployees = filteredEmployees.slice(indexOfFirst, indexOfLast);
@@ -142,12 +139,14 @@ const EmployeeList = () => {
           <option value="PENDING">Pending</option>
         </select>
 
-        <button
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          onClick={() => navigate("/employees/new")}
-        >
-          Add New Employee
-        </button>
+        {user?.role === "MANAGER" && (
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            onClick={() => navigate("/employees/new")}
+          >
+            Add New Employee
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -173,69 +172,73 @@ const EmployeeList = () => {
                   <td className="border p-2">{emp.email}</td>
                   <td className="border p-2">{emp.position}</td>
                   <td className="border p-2">
-                    {emp.isPendingApprovalByManager
+                    {emp.pendingApprovalByManager
                       ? "Pending"
-                      : emp.isActive
-                      ? "Active"
-                      : "Inactive"}
+                      : emp.active
+                        ? "Active"
+                        : "Inactive"}
                   </td>
                   <td className="border p-2 space-x-2">
-                    {emp.isPendingApprovalByManager ? (
+                    {emp.pendingApprovalByManager ? (
                       <>
-                        <button
-                          className="px-3 py-1 bg-green-600 text-white rounded"
-                          onClick={() => handleApprove(emp.id)}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="px-3 py-1 bg-red-600 text-white rounded"
-                          onClick={() => handleReject(emp.id)}
-                        >
-                          Reject
-                        </button>
+                        {user?.role === "MANAGER" && (
+                          <>
+                            <button
+                              className="px-3 py-1 bg-green-600 text-white rounded"
+                              onClick={() => handleApprove(emp.id)}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              className="px-3 py-1 bg-red-600 text-white rounded"
+                              onClick={() => handleReject(emp.id)}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
                       </>
                     ) : (
                       <>
-                        <button
-                          className="px-3 py-1 bg-yellow-500 text-white rounded"
-                          onClick={() => navigate(`/employees/edit/${emp.id}`)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className={`px-3 py-1 text-white rounded ${
-                            emp.isActive ? "bg-gray-500" : "bg-green-600"
-                          }`}
-                          onClick={() => handleToggleStatus(emp.id)}
-                        >
-                          {emp.isActive ? "Deactivate" : "Activate"}
-                        </button>
+                        {user?.role === "MANAGER" && (
+                          <>
+                            <button
+                              className="px-3 py-1 bg-yellow-500 text-white rounded"
+                              onClick={() => navigate(`/employees/${emp.id}/edit`)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className={`px-3 py-1 text-white rounded ${emp.active ? "bg-gray-500" : "bg-green-600"
+                                }`}
+                              onClick={() => handleToggleStatus(emp.id)}
+                            >
+                              {emp.active ? "Deactivate" : "Activate"}
+                            </button>
+                            <button
+                              className="px-3 py-1 bg-red-500 text-white rounded"
+                              onClick={() => handleDelete(emp.id)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </>
                     )}
-
-                    <button
-                      className="px-3 py-1 bg-red-500 text-white rounded"
-                      onClick={() => handleDelete(emp.id)}
-                    >
-                      Delete
-                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {/* Pagination */}
           <div className="mt-4 flex justify-center space-x-2">
             {Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i}
-                className={`px-3 py-1 rounded ${
-                  currentPage === i + 1
+                className={`px-3 py-1 rounded ${currentPage === i + 1
                     ? "bg-blue-600 text-white"
                     : "bg-gray-200 text-black"
-                }`}
+                  }`}
                 onClick={() => setCurrentPage(i + 1)}
               >
                 {i + 1}

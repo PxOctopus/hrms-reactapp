@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getCurrentUser } from "../../lib/userApi";
 import { PendingManager } from "../../types/User";
 import {
@@ -21,6 +22,7 @@ const ProfileSettings = () => {
   const [pendingManagers, setPendingManagers] = useState<PendingManager[]>([]);
   const [pendingEmployees, setPendingEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,6 +105,18 @@ const ProfileSettings = () => {
     <div className="max-w-4xl mx-auto mt-10 space-y-8">
       <ProfileInfo user={user} />
 
+      {/* MANAGER: Button to navigate to the Employee Management Page */}
+      {user.role === "MANAGER" && user.companyApproved && (
+  <div className="flex justify-end">
+    <button
+      className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
+      onClick={() => navigate("/employees")}
+    >
+      Manage Employees
+    </button>
+  </div>
+)}
+
       {user.role === "ADMIN" && (
         <div className="bg-white p-6 shadow rounded">
           <h2 className="text-xl font-bold mb-4">Pending Manager Approvals</h2>
@@ -149,6 +163,9 @@ const ProfileSettings = () => {
       {user.role === "MANAGER" && (
         <div className="bg-white p-6 shadow rounded">
           <h2 className="text-xl font-bold mb-4">Pending Employee Approvals</h2>
+          <p className="mb-2 text-gray-600 text-sm">
+            The employees awaiting your approval are listed below.
+          </p>
           {pendingEmployees.length === 0 ? (
             <p className="text-gray-500">No pending employees.</p>
           ) : (

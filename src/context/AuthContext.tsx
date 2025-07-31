@@ -1,17 +1,30 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { UserProfile } from "../types/User";
+import { jwtDecode } from "jwt-decode";
 
 interface AuthContextType {
   user: UserProfile | null;
   setUser: (user: UserProfile | null) => void;
 }
 
-// Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+
+  // Load user from localStorage token on initial mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const decoded = jwtDecode<UserProfile>(token);
+setUser(decoded);
+      } catch (err) {
+        console.error("Failed to decode token:", err);
+        setUser(null);
+      }
+    }
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>
@@ -20,7 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

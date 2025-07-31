@@ -81,7 +81,7 @@ export default function EmployeeForm() {
         ...data,
         salary: parseFloat(data.salary),
         annualLeave: parseInt(data.annualLeave),
-         isPendingApprovalByManager: false,
+        pendingApprovalByManager: false,
       };
 
       if (isEditMode && id) {

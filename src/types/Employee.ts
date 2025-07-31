@@ -13,8 +13,8 @@ export interface Employee {
   address?: string;
   salary?: number;
   annualLeave?: number;
-  isActive: boolean;
-  isPendingApprovalByManager: boolean;
+  active: boolean;
+  pendingApprovalByManager: boolean;
   createdAt: number;
   updatedAt?: number;
 }
@@ -29,5 +29,5 @@ export interface EmployeeCreateRequest {
   address?: string;
   salary: number;
   annualLeave: number;
-  isPendingApprovalByManager: boolean;
+  pendingApprovalByManager: boolean;
 }

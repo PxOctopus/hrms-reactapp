@@ -14,6 +14,7 @@ export interface UserProfile {
   enabled: boolean;
   createdAt: string;
   company?: Company | null;
+  companyApproved: boolean;
 }
 
 export interface PendingManager {
