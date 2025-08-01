@@ -12,9 +12,9 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   const { user } = useAuth();
 
   // Not logged in
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
+ if (!user) {
+  return <Navigate to="/login" replace />;
+}
 
   // Logged in but role not authorized
   if (roles && (!user || !roles.includes(user.role))) {

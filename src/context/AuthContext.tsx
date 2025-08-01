@@ -14,17 +14,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Load user from localStorage token on initial mount
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decoded = jwtDecode<UserProfile>(token);
-setUser(decoded);
-      } catch (err) {
-        console.error("Failed to decode token:", err);
-        setUser(null);
-      }
+  const token = localStorage.getItem("token");
+  if (token && !user) {
+    try {
+      const decoded = jwtDecode<UserProfile>(token);
+      setUser(decoded);
+    } catch (err) {
+      console.error("Failed to decode token:", err);
+      setUser(null);
     }
-  }, []);
+  }
+}, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>

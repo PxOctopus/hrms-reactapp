@@ -9,6 +9,8 @@ import CompanyList from "../features/companies/CompanyList";
 import EmployeeList from "../features/employees/EmployeeList";
 import EmployeeForm from "../features/employees/EmployeeForm";
 import LeaveManagement from "../features/leaves/LeaveManagement";
+import AssignedLeavesList from "../features/leaves/AssignedLeaveList";
+import PendingLeaves from "../features/leaves/PendingLeaves";
 import PendingManagerList from "../features/admin/PendingManagerList";
 import Unauthorized from "../features/common/Unauthorized";
 import ProtectedRoute from "./ProtectedRoute";
@@ -33,7 +35,7 @@ export default function AppRouter() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Protected routes (accessible by all authenticated users) */}
+        {/* Protected routes */}
         <Route
           path="/profile"
           element={
@@ -77,8 +79,24 @@ export default function AppRouter() {
         <Route
           path="/leaves"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["EMPLOYEE", "MANAGER"]}>
               <LeaveManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assigned-leaves"
+          element={
+            <ProtectedRoute roles={["MANAGER"]}>
+              <AssignedLeavesList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pending-leaves"
+          element={
+            <ProtectedRoute roles={["MANAGER"]}>
+              <PendingLeaves />
             </ProtectedRoute>
           }
         />

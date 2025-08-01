@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import AppRouter from "./router/AppRouter";
 import { useAuth } from "./context/AuthContext";
 import { getCurrentUser } from "./lib/userApi";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const { setUser } = useAuth();
@@ -28,8 +30,12 @@ function App() {
     fetchUser();
   }, [setUser]);
 
-  // Render the application router
-  return <AppRouter />;
+  return (
+    <>
+      <AppRouter />
+      <ToastContainer position="top-right" autoClose={3000} />
+    </>
+  );
 }
 
 export default App;

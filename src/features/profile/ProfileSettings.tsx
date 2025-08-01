@@ -105,18 +105,36 @@ const ProfileSettings = () => {
     <div className="max-w-4xl mx-auto mt-10 space-y-8">
       <ProfileInfo user={user} />
 
-      {/* MANAGER: Button to navigate to the Employee Management Page */}
-      {user.role === "MANAGER" && user.companyApproved && (
-  <div className="flex justify-end">
+      {/* EMPLOYEE & MANAGER: Show "Manage Leave Requests" button */}
+      {(user.role === "EMPLOYEE" || user.role === "MANAGER") && (
+        <div className="flex justify-end">
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
+            onClick={() => navigate("/leaves")}
+          >
+            Manage Leave Requests
+          </button>
+        </div>
+      )}
+
+     {user.role === "MANAGER" && user.companyApproved && (
+  <div className="flex justify-end space-x-4">
     <button
-      className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
+      className="bg-emerald-600 text-white px-4 py-2 rounded shadow hover:bg-emerald-700 transition"
       onClick={() => navigate("/employees")}
     >
       Manage Employees
     </button>
+    <button
+      className="bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700 transition"
+      onClick={() => navigate("/pending-leaves")}
+    >
+      View Leaves
+    </button>
   </div>
 )}
 
+      {/* ADMIN: Pending Manager Approvals */}
       {user.role === "ADMIN" && (
         <div className="bg-white p-6 shadow rounded">
           <h2 className="text-xl font-bold mb-4">Pending Manager Approvals</h2>
@@ -160,6 +178,7 @@ const ProfileSettings = () => {
         </div>
       )}
 
+      {/* MANAGER: Pending Employee Approvals */}
       {user.role === "MANAGER" && (
         <div className="bg-white p-6 shadow rounded">
           <h2 className="text-xl font-bold mb-4">Pending Employee Approvals</h2>
