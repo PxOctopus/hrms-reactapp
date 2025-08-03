@@ -208,13 +208,14 @@ const EmployeeList = () => {
                             >
                               Edit
                             </button>
+
                             <button
-                              className={`px-3 py-1 text-white rounded ${emp.active ? "bg-gray-500" : "bg-green-600"
-                                }`}
+                              className={`px-3 py-1 text-white rounded ${emp.active ? "bg-gray-600 hover:bg-gray-700" : "bg-green-600 hover:bg-green-700"}`}
                               onClick={() => handleToggleStatus(emp.id)}
                             >
                               {emp.active ? "Deactivate" : "Activate"}
                             </button>
+
                             <button
                               className="px-3 py-1 bg-red-500 text-white rounded"
                               onClick={() => handleDelete(emp.id)}
@@ -226,6 +227,7 @@ const EmployeeList = () => {
                       </>
                     )}
                   </td>
+
                 </tr>
               ))}
             </tbody>
@@ -236,8 +238,8 @@ const EmployeeList = () => {
               <button
                 key={i}
                 className={`px-3 py-1 rounded ${currentPage === i + 1
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-black"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-black"
                   }`}
                 onClick={() => setCurrentPage(i + 1)}
               >
