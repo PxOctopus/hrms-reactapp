@@ -1,5 +1,5 @@
 import React, { ReactElement } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 interface ProtectedRouteProps {
@@ -10,18 +10,23 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   const token = localStorage.getItem("token");
   const { user } = useAuth();
+  const location = useLocation();
 
-  // Not logged in
- if (!user) {
-  return <Navigate to="/login" replace />;
-}
+  // Not logged in or no token
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
 
-  // Logged in but role not authorized
-  if (roles && (!user || !roles.includes(user.role))) {
+  // User must change password but trying to access other routes
+  if (user.mustChangePassword && location.pathname !== "/set-password") {
+    return <Navigate to="/set-password" replace />;
+  }
+
+  // Logged in but not authorized by role
+  if (roles && !roles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Authorized
   return children;
 };
 

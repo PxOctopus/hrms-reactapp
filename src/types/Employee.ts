@@ -29,5 +29,7 @@ export interface EmployeeCreateRequest {
   address?: string;
   salary: number;
   annualLeave: number;
-  pendingApprovalByManager: boolean;
+  pendingApprovalByManager?: boolean;
+  email: string;
+  fullName: string;
 }

@@ -15,6 +15,8 @@ export interface UserProfile {
   createdAt: string;
   company?: Company | null;
   companyApproved: boolean;
+  phoneNumber?: string | null;
+  mustChangePassword: boolean;
 }
 
 export interface PendingManager {

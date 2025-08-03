@@ -12,9 +12,11 @@ import {
 import { EmployeeCreateRequest } from "../../types/Employee";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useAuth } from "../../context/AuthContext";
 
 // Validation schema using Zod
 const schema = z.object({
+  fullName: z.string().min(1, "Full name is required").optional(), // optional olarak tanımlanacak
   position: z.string().min(1, "Position is required"),
   contractType: z.nativeEnum(ContractType, {
     errorMap: () => ({ message: "Contract type is required" }),
@@ -30,6 +32,7 @@ const schema = z.object({
   birthDate: z.string().optional(),
   hireDate: z.string().optional(),
   endDate: z.string().optional(),
+  email: z.string().email("Invalid email").optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -38,6 +41,7 @@ export default function EmployeeForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
+  const { user: currentUser } = useAuth();
 
   const {
     register,
@@ -48,12 +52,12 @@ export default function EmployeeForm() {
     resolver: zodResolver(schema),
   });
 
-  // Load employee data in edit mode
   useEffect(() => {
     if (isEditMode && id) {
       getEmployeeById(Number(id))
         .then((employee) => {
           reset({
+            fullName: employee.fullName || "",
             position: employee.position,
             contractType: employee.contractType as ContractType,
             phoneNumber: employee.phoneNumber || "",
@@ -65,6 +69,7 @@ export default function EmployeeForm() {
             birthDate: employee.birthDate || "",
             hireDate: employee.hireDate || "",
             endDate: employee.endDate || "",
+            email: employee.email || "",
           });
         })
         .catch((error) => {
@@ -74,14 +79,22 @@ export default function EmployeeForm() {
     }
   }, [id, isEditMode, reset]);
 
-  // Submit handler
   const onSubmit = async (data: FormData) => {
     try {
       const payload: EmployeeCreateRequest = {
         ...data,
         salary: parseFloat(data.salary),
         annualLeave: parseInt(data.annualLeave),
-        pendingApprovalByManager: false,
+        pendingApprovalByManager:
+          currentUser?.role === "MANAGER" ? false : true,
+        email:
+          currentUser?.role === "MANAGER"
+            ? data.email!
+            : currentUser?.email || "",
+        fullName:
+          currentUser?.role === "MANAGER"
+            ? data.fullName!
+            : currentUser?.fullName || "", // fallback for employee self-registration
       };
 
       if (isEditMode && id) {
@@ -108,6 +121,34 @@ export default function EmployeeForm() {
       </h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {currentUser?.role === "MANAGER" && (
+          <>
+            <input
+              type="text"
+              {...register("fullName", {
+                required: "Full name is required",
+              })}
+              placeholder="Full Name"
+              className="w-full border px-3 py-2 rounded"
+            />
+            {errors.fullName && (
+              <p className="text-red-500 text-sm">{errors.fullName.message}</p>
+            )}
+
+            <input
+              type="email"
+              {...register("email", {
+                required: "Email is required",
+              })}
+              placeholder="Employee Email"
+              className="w-full border px-3 py-2 rounded"
+            />
+            {errors.email && (
+              <p className="text-red-500 text-sm">{errors.email.message}</p>
+            )}
+          </>
+        )}
+
         <input
           type="text"
           {...register("position")}
@@ -164,9 +205,20 @@ export default function EmployeeForm() {
           <p className="text-red-500 text-sm">{errors.annualLeave.message}</p>
         )}
 
-        <input type="date" {...register("birthDate")} className="w-full border px-3 py-2 rounded" />
-        <input type="date" {...register("hireDate")} className="w-full border px-3 py-2 rounded" />
-        <input type="date" {...register("endDate")} className="w-full border px-3 py-2 rounded" />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+          <input type="date" {...register("birthDate")} className="w-full border px-3 py-2 rounded" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hire Date</label>
+          <input type="date" {...register("hireDate")} className="w-full border px-3 py-2 rounded" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">End Date (if applicable)</label>
+          <input type="date" {...register("endDate")} className="w-full border px-3 py-2 rounded" />
+        </div>
 
         <button
           type="submit"

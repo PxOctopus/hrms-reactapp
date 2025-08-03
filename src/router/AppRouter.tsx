@@ -14,6 +14,7 @@ import PendingLeaves from "../features/leaves/PendingLeaves";
 import PendingManagerList from "../features/admin/PendingManagerList";
 import Unauthorized from "../features/common/Unauthorized";
 import ProtectedRoute from "./ProtectedRoute";
+import SetPassword from "../features/auth/SetPassword";
 import { useAuth } from "../context/AuthContext";
 
 export default function AppRouter() {
@@ -111,10 +112,18 @@ export default function AppRouter() {
           }
         />
 
+        {/* Set password page after first login */}
+        <Route
+          path="/set-password"
+          element={
+              <SetPassword />
+          }
+        />
+
         {/* Unauthorized fallback */}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Catch-all */}
+        {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

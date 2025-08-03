@@ -32,6 +32,7 @@ export interface LoginResponse {
   accessToken: string;
   role: string;
   tokenType: string;
+  mustChangePassword: boolean; 
 }
 
 export interface ForgotPasswordRequest {
@@ -40,5 +41,9 @@ export interface ForgotPasswordRequest {
 
 export interface ResetPasswordRequest {
   token: string;
+  newPassword: string;
+}
+
+export interface SetPasswordRequest {
   newPassword: string;
 }

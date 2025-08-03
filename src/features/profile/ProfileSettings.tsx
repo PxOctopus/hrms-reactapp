@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUser } from "../../lib/userApi";
-import { PendingManager } from "../../types/User";
+import { getCurrentUser, updateUserProfile } from "../../lib/userApi";
+import { PendingManager, UserProfile } from "../../types/User";
 import {
   getPendingManagers,
   approveManagerCompany,
@@ -12,10 +12,10 @@ import {
   approveEmployee,
   rejectEmployee,
 } from "../../lib/employeeApi";
-import { UserProfile } from "../../types/User";
 import { Employee } from "../../types/Employee";
 import { toast } from "react-toastify";
 import ProfileInfo from "../../components/profile/ProfileInfo";
+import ProfileUpdateForm from "../../components/profile/ProfileUpdateForm";
 
 const ProfileSettings = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -102,10 +102,13 @@ const ProfileSettings = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 space-y-8">
-      <ProfileInfo user={user} />
+    <div className="max-w-4xl mx-auto mt-10 space-y-10">
+      <div className="bg-white shadow p-6 rounded space-y-6">
+        <h2 className="text-xl font-bold mb-2">Your Profile</h2>
+        <ProfileInfo user={user} />
+        <ProfileUpdateForm user={user} onUpdate={setUser} />
+      </div>
 
-      {/* EMPLOYEE & MANAGER: Show "Manage Leave Requests" button */}
       {(user.role === "EMPLOYEE" || user.role === "MANAGER") && (
         <div className="flex justify-end">
           <button
@@ -117,24 +120,23 @@ const ProfileSettings = () => {
         </div>
       )}
 
-     {user.role === "MANAGER" && user.companyApproved && (
-  <div className="flex justify-end space-x-4">
-    <button
-      className="bg-emerald-600 text-white px-4 py-2 rounded shadow hover:bg-emerald-700 transition"
-      onClick={() => navigate("/employees")}
-    >
-      Manage Employees
-    </button>
-    <button
-      className="bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700 transition"
-      onClick={() => navigate("/pending-leaves")}
-    >
-      View Leaves
-    </button>
-  </div>
-)}
+      {user.role === "MANAGER" && user.companyApproved && (
+        <div className="flex justify-end space-x-4">
+          <button
+            className="bg-emerald-600 text-white px-4 py-2 rounded shadow hover:bg-emerald-700 transition"
+            onClick={() => navigate("/employees")}
+          >
+            Manage Employees
+          </button>
+          <button
+            className="bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700 transition"
+            onClick={() => navigate("/pending-leaves")}
+          >
+            View Leaves
+          </button>
+        </div>
+      )}
 
-      {/* ADMIN: Pending Manager Approvals */}
       {user.role === "ADMIN" && (
         <div className="bg-white p-6 shadow rounded">
           <h2 className="text-xl font-bold mb-4">Pending Manager Approvals</h2>
@@ -178,7 +180,6 @@ const ProfileSettings = () => {
         </div>
       )}
 
-      {/* MANAGER: Pending Employee Approvals */}
       {user.role === "MANAGER" && (
         <div className="bg-white p-6 shadow rounded">
           <h2 className="text-xl font-bold mb-4">Pending Employee Approvals</h2>

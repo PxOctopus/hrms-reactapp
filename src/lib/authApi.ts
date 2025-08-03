@@ -8,6 +8,7 @@ import {
   VerifyEmailRequest,
   VerifyEmailResponse,
   AuthResponse,
+  SetPasswordRequest
 } from "../types/Auth";
 import { UserProfile } from "../types/User";
 
@@ -15,7 +16,7 @@ import { UserProfile } from "../types/User";
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   try {
     const response = await axios.post<LoginResponse>("/auth/login", data);
-    
+
     console.log("🔍 Full login response:", response.data);
 
     const loginResponse = response.data;
@@ -55,5 +56,11 @@ export async function resetPassword(data: ResetPasswordRequest) {
 // Verify Email
 export async function verifyEmail(data: VerifyEmailRequest): Promise<VerifyEmailResponse> {
   const response = await axios.post("/auth/verify-email", data);
+  return response.data;
+}
+
+// ✅ Set Password (for logged in users)
+export async function setPassword(data: SetPasswordRequest) {
+  const response = await axios.post("/auth/set-password", data);
   return response.data;
 }

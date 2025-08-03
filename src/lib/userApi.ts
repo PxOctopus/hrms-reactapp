@@ -24,3 +24,9 @@ export const rejectManagerCompany = async (userId: number) => {
   const response = await axios.post(`/admin/companies/reject/${userId}`);
   return response.data;
 };
+
+// Update current user's profile
+export const updateUserProfile = async (data: Partial<UserProfile>): Promise<UserProfile> => {
+  const response = await axios.put<UserProfile>("/users/profile", data);
+  return response.data;
+};
