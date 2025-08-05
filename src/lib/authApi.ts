@@ -30,7 +30,7 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
 
     return loginResponse;
   } catch (error: any) {
-    console.error("❌ Login error:", error);
+    console.error("Login error:", error);
     throw error;
   }
 }
@@ -59,7 +59,7 @@ export async function verifyEmail(data: VerifyEmailRequest): Promise<VerifyEmail
   return response.data;
 }
 
-// ✅ Set Password (for logged in users)
+// Set Password (for logged in users)
 export async function setPassword(data: SetPasswordRequest) {
   const response = await axios.post("/auth/set-password", data);
   return response.data;

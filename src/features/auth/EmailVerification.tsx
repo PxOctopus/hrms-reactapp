@@ -18,7 +18,7 @@ const EmailVerification = () => {
 
     verifyEmail({ token })
       .then((response) => {
-        setUser(response.user); 
+         // setUser(response.user); //
         setStatus("success");
       })
       .catch(() => {

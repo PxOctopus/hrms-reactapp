@@ -37,8 +37,8 @@ export default function SetPassword() {
       });
 
       setUser({ ...user!, mustChangePassword: false });
-      setMessage("Password successfully updated.");
-      setTimeout(() => navigate("/profile"), 1500);
+      setMessage("Your password has been changed. You can now log in with your new password.");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to update password.");
     }

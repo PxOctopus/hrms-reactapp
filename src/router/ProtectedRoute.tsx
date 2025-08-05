@@ -22,6 +22,11 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
     return <Navigate to="/set-password" replace />;
   }
 
+  // User already changed password but trying to access /set-password
+  if (!user.mustChangePassword && location.pathname === "/set-password") {
+    return <Navigate to="/profile" replace />;
+  }
+
   // Logged in but not authorized by role
   if (roles && !roles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />;

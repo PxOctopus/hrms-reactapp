@@ -52,5 +52,5 @@ export const rejectEmployee = async (id: number): Promise<void> => {
 
 // Toggle employee status (active/inactive)
 export const toggleEmployeeStatus = async (id: number): Promise<void> => {
-  await axios.patch(`/api/employees/${id}/toggle-active`);
+  await axios.patch(`/employees/${id}/toggle-active`);
 };

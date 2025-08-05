@@ -22,9 +22,8 @@ const EmployeeList = () => {
   const itemsPerPage = 5;
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth(); // Access current user info
+  const { user } = useAuth();
 
-  // Fetch all employees from API
   const fetchEmployees = async () => {
     setLoading(true);
     try {
@@ -38,7 +37,6 @@ const EmployeeList = () => {
     setLoading(false);
   };
 
-  // Apply search and filter
   useEffect(() => {
     let filtered = employees;
 
@@ -95,16 +93,17 @@ const EmployeeList = () => {
     }
   };
 
-  const handleToggleStatus = async (id: number) => {
-    try {
-      await toggleEmployeeStatus(id);
-      toast.success("Employee status updated.");
-      await fetchEmployees();
-    } catch (err) {
-      toast.error("Status update failed.");
-      console.error(err);
-    }
-  };
+const handleToggleStatus = async (id: number) => {
+  try {
+    await toggleEmployeeStatus(id); // sadece isteği yapar, response döndürmez
+    const updatedList = await getAllEmployees(); // güncel tüm liste
+    setEmployees(updatedList);
+    toast.success("Employee status updated.");
+  } catch (err) {
+    toast.error("Status update failed.");
+    console.error(err);
+  }
+};
 
   useEffect(() => {
     fetchEmployees();
@@ -175,8 +174,8 @@ const EmployeeList = () => {
                     {emp.pendingApprovalByManager
                       ? "Pending"
                       : emp.active
-                        ? "Active"
-                        : "Inactive"}
+                      ? "Active"
+                      : "Inactive"}
                   </td>
                   <td className="border p-2 space-x-2">
                     {emp.pendingApprovalByManager ? (
@@ -209,12 +208,21 @@ const EmployeeList = () => {
                               Edit
                             </button>
 
-                            <button
-                              className={`px-3 py-1 text-white rounded ${emp.active ? "bg-gray-600 hover:bg-gray-700" : "bg-green-600 hover:bg-green-700"}`}
-                              onClick={() => handleToggleStatus(emp.id)}
-                            >
-                              {emp.active ? "Deactivate" : "Activate"}
-                            </button>
+                            {emp.active ? (
+                              <button
+                                className="px-3 py-1 bg-gray-600 text-white rounded"
+                                onClick={() => handleToggleStatus(emp.id)}
+                              >
+                                Deactivate
+                              </button>
+                            ) : (
+                              <button
+                                className="px-3 py-1 bg-green-600 text-white rounded"
+                                onClick={() => handleToggleStatus(emp.id)}
+                              >
+                                Activate
+                              </button>
+                            )}
 
                             <button
                               className="px-3 py-1 bg-red-500 text-white rounded"
@@ -227,7 +235,6 @@ const EmployeeList = () => {
                       </>
                     )}
                   </td>
-
                 </tr>
               ))}
             </tbody>
@@ -237,10 +244,11 @@ const EmployeeList = () => {
             {Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i}
-                className={`px-3 py-1 rounded ${currentPage === i + 1
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-black"
-                  }`}
+                className={`px-3 py-1 rounded ${
+                  currentPage === i + 1
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-black"
+                }`}
                 onClick={() => setCurrentPage(i + 1)}
               >
                 {i + 1}

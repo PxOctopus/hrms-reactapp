@@ -4,6 +4,7 @@ import { UserProfile } from "../types/User";
 // Fetch current user's profile
 export const getCurrentUser = async (): Promise<UserProfile> => {
   const response = await axios.get<UserProfile>("/users/profile");
+   console.log("DEBUG user response:", response.data);
   return response.data;
 };
 

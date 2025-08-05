@@ -114,11 +114,13 @@ export default function AppRouter() {
 
         {/* Set password page after first login */}
         <Route
-          path="/set-password"
-          element={
-              <SetPassword />
-          }
-        />
+  path="/set-password"
+  element={
+    <ProtectedRoute>
+      <SetPassword />
+    </ProtectedRoute>
+  }
+/>
 
         {/* Unauthorized fallback */}
         <Route path="/unauthorized" element={<Unauthorized />} />

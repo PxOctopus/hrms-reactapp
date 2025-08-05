@@ -7,6 +7,7 @@ import { LoginRequest } from "../../types/Auth";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { toast } from "react-toastify";
 
 // Form validation schema
 const schema = z.object({
@@ -30,13 +31,22 @@ export default function Login() {
   // Handle form submission
 const onSubmit = async (data: LoginRequest) => {
   try {
+    // Attempt login
     const response = await login(data);
+
+    // Save access token to local storage
     localStorage.setItem("token", response.accessToken);
 
+    // Fetch current user data after login
     const userData = await getCurrentUser();
+    console.log("Fetched user data:", userData);
+
+    // Set user in context
     setUser(userData);
 
-    if (userData.mustChangePassword) {
+    // Check if password change is required
+    if (response.mustChangePassword) {
+      toast.info("Please set a new password before accessing your profile.");
       navigate("/set-password");
     } else {
       navigate("/profile");
