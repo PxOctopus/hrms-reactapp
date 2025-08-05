@@ -45,4 +45,9 @@ export const approveOrRejectLeave = async (
   await axios.post("/leaves/decision", { leaveId, approved });
 };
 
+export const getLeavesApprovedByManager = async (): Promise<Leave[]> => {
+  const response = await axios.get("/leaves/approved-by-me");
+  return response.data;
+};
+
 export {};

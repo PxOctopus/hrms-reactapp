@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   getPendingLeaves,
   getLeavesAssignedByManager,
+  getLeavesApprovedByManager, // ✅ yeni API fonksiyonu
   approveOrRejectLeave,
 } from "../../lib/leaveApi";
 import { Leave } from "../../types/Leave";
@@ -10,7 +11,7 @@ import { toast } from "react-toastify";
 const PendingLeaves = () => {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<"pending" | "assigned">("pending");
+  const [view, setView] = useState<"pending" | "assigned" | "approved">("pending");
 
   const fetchLeaves = useCallback(async () => {
     setLoading(true);
@@ -18,7 +19,9 @@ const PendingLeaves = () => {
       const data =
         view === "pending"
           ? await getPendingLeaves()
-          : await getLeavesAssignedByManager();
+          : view === "assigned"
+          ? await getLeavesAssignedByManager()
+          : await getLeavesApprovedByManager(); // ✅ yeni durum
       setLeaves(data);
     } catch (error) {
       toast.error("Failed to fetch leave requests");
@@ -35,7 +38,7 @@ const PendingLeaves = () => {
     try {
       await approveOrRejectLeave(leaveId, approved);
       toast.success(`Leave ${approved ? "approved" : "rejected"} successfully`);
-      fetchLeaves(); // Refresh list
+      fetchLeaves();
     } catch (error) {
       toast.error("Failed to update leave status");
       console.error(error);
@@ -63,6 +66,14 @@ const PendingLeaves = () => {
           onClick={() => setView("assigned")}
         >
           Leaves I Assigned
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${
+            view === "approved" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
+          onClick={() => setView("approved")}
+        >
+          Leaves I Approved
         </button>
       </div>
 
