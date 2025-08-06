@@ -25,3 +25,8 @@ export interface PendingManager {
   email: string;
   pendingCompanyName: string;
 }
+
+export interface ManagerUpdateProfileRequest {
+  phoneNumber?: string;
+  address?: string;
+}

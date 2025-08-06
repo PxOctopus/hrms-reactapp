@@ -33,3 +33,10 @@ export interface EmployeeCreateRequest {
   email: string;
   fullName: string;
 }
+
+
+export interface EmployeeUpdateProfileRequest {
+  phoneNumber?: string;
+  address?: string;
+  birthDate?: string;
+}

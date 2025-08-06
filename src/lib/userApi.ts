@@ -1,5 +1,8 @@
-import axios from "./axios"; // custom axios instance
+import axios from "./axios";
 import { UserProfile } from "../types/User";
+import {ManagerUpdateProfileRequest} from "../types/User";
+import { EmployeeUpdateProfileRequest } from "../types/Employee";
+
 
 // Fetch current user's profile
 export const getCurrentUser = async (): Promise<UserProfile> => {
@@ -29,5 +32,16 @@ export const rejectManagerCompany = async (userId: number) => {
 // Update current user's profile
 export const updateUserProfile = async (data: Partial<UserProfile>): Promise<UserProfile> => {
   const response = await axios.put<UserProfile>("/users/profile", data);
+  return response.data;
+};
+
+
+export const updateManagerProfile = async (data: ManagerUpdateProfileRequest) => {
+  const response = await axios.put("/users/profile/manager", data);
+  return response.data;
+};
+
+export const updateEmployeeProfile = async (data: EmployeeUpdateProfileRequest) => {
+  const response = await axios.put("/employees/my-profile", data);
   return response.data;
 };

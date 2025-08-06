@@ -4,30 +4,31 @@ import { useAuth } from "../context/AuthContext";
 
 interface ProtectedRouteProps {
   children: ReactElement;
-  roles?: string[]; // Optional role-based access
+  roles?: string[];
 }
 
 const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   const token = localStorage.getItem("token");
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Not logged in or no token
+  // ✅ Bekleme süreci (önemli!)
+  if (loading) {
+    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+  }
+
   if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // User must change password but trying to access other routes
   if (user.mustChangePassword && location.pathname !== "/set-password") {
     return <Navigate to="/set-password" replace />;
   }
 
-  // User already changed password but trying to access /set-password
   if (!user.mustChangePassword && location.pathname === "/set-password") {
     return <Navigate to="/profile" replace />;
   }
 
-  // Logged in but not authorized by role
   if (roles && !roles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />;
   }

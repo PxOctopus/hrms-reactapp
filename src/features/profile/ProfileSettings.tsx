@@ -15,7 +15,6 @@ import {
 import { Employee } from "../../types/Employee";
 import { toast } from "react-toastify";
 import ProfileInfo from "../../components/profile/ProfileInfo";
-import ProfileUpdateForm from "../../components/profile/ProfileUpdateForm";
 
 const ProfileSettings = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -104,9 +103,7 @@ const ProfileSettings = () => {
   return (
     <div className="max-w-4xl mx-auto mt-10 space-y-10">
       <div className="bg-white shadow p-6 rounded space-y-6">
-        <h2 className="text-xl font-bold mb-2">Your Profile</h2>
         <ProfileInfo user={user} />
-        <ProfileUpdateForm user={user} onUpdate={setUser} />
       </div>
 
       {(user.role === "EMPLOYEE" || user.role === "MANAGER") && (

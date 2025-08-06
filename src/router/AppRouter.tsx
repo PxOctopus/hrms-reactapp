@@ -15,6 +15,8 @@ import PendingManagerList from "../features/admin/PendingManagerList";
 import Unauthorized from "../features/common/Unauthorized";
 import ProtectedRoute from "./ProtectedRoute";
 import SetPassword from "../features/auth/SetPassword";
+import UpdateManagerProfile from "../features/profile/UpdateManagerProfile";
+import UpdateEmployeeProfile from "../features/profile/UpdateEmployeeProfile";
 import { useAuth } from "../context/AuthContext";
 
 export default function AppRouter() {
@@ -42,6 +44,23 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <ProfileSettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/update-manager"
+          element={
+            <ProtectedRoute roles={["MANAGER"]}>
+              <UpdateManagerProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile/update-employee"
+          element={
+            <ProtectedRoute roles={["EMPLOYEE"]}>
+              <UpdateEmployeeProfile />
             </ProtectedRoute>
           }
         />
@@ -114,13 +133,13 @@ export default function AppRouter() {
 
         {/* Set password page after first login */}
         <Route
-  path="/set-password"
-  element={
-    <ProtectedRoute>
-      <SetPassword />
-    </ProtectedRoute>
-  }
-/>
+          path="/set-password"
+          element={
+            <ProtectedRoute>
+              <SetPassword />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Unauthorized fallback */}
         <Route path="/unauthorized" element={<Unauthorized />} />
