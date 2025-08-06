@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getAllEmployees,
-  getPendingEmployees,
   approveEmployee,
   rejectEmployee,
   deleteEmployee,
@@ -28,14 +27,19 @@ const EmployeeList = () => {
     setLoading(true);
     try {
       const data = await getAllEmployees();
+      console.log("🔁 fetchEmployees - API response:", data);
       setEmployees(data);
       setFilteredEmployees(data);
     } catch (error) {
       toast.error("Failed to fetch employees.");
-      console.error("Fetch error:", error);
+      console.error("❌ fetchEmployees error:", error);
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
   useEffect(() => {
     let filtered = employees;
@@ -48,8 +52,8 @@ const EmployeeList = () => {
 
     if (statusFilter !== "ALL") {
       filtered = filtered.filter((emp) => {
-        if (statusFilter === "ACTIVE") return emp.active && !emp.pendingApprovalByManager;
-        if (statusFilter === "INACTIVE") return !emp.active && !emp.pendingApprovalByManager;
+        if (statusFilter === "ACTIVE") return emp.isActive && !emp.pendingApprovalByManager;
+        if (statusFilter === "INACTIVE") return !emp.isActive && !emp.pendingApprovalByManager;
         if (statusFilter === "PENDING") return emp.pendingApprovalByManager;
         return true;
       });
@@ -93,21 +97,17 @@ const EmployeeList = () => {
     }
   };
 
-const handleToggleStatus = async (id: number) => {
-  try {
-    await toggleEmployeeStatus(id); // sadece isteği yapar, response döndürmez
-    const updatedList = await getAllEmployees(); // güncel tüm liste
-    setEmployees(updatedList);
-    toast.success("Employee status updated.");
-  } catch (err) {
-    toast.error("Status update failed.");
-    console.error(err);
-  }
-};
-
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
+  const handleToggleStatus = async (id: number) => {
+    try {
+      console.log("⚙️ Toggling employee status, id:", id);
+      await toggleEmployeeStatus(id);
+      console.log("✅ Status toggled on backend, now fetching updated employees...");
+      await fetchEmployees();
+    } catch (err) {
+      toast.error("Status update failed.");
+      console.error("❌ toggleEmployeeStatus error:", err);
+    }
+  };
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
@@ -165,78 +165,81 @@ const handleToggleStatus = async (id: number) => {
               </tr>
             </thead>
             <tbody>
-              {currentEmployees.map((emp) => (
-                <tr key={emp.id}>
-                  <td className="border p-2">{emp.fullName}</td>
-                  <td className="border p-2">{emp.email}</td>
-                  <td className="border p-2">{emp.position}</td>
-                  <td className="border p-2">
-                    {emp.pendingApprovalByManager
-                      ? "Pending"
-                      : emp.active
-                      ? "Active"
-                      : "Inactive"}
-                  </td>
-                  <td className="border p-2 space-x-2">
-                    {emp.pendingApprovalByManager ? (
-                      <>
-                        {user?.role === "MANAGER" && (
-                          <>
-                            <button
-                              className="px-3 py-1 bg-green-600 text-white rounded"
-                              onClick={() => handleApprove(emp.id)}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="px-3 py-1 bg-red-600 text-white rounded"
-                              onClick={() => handleReject(emp.id)}
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {user?.role === "MANAGER" && (
-                          <>
-                            <button
-                              className="px-3 py-1 bg-yellow-500 text-white rounded"
-                              onClick={() => navigate(`/employees/${emp.id}/edit`)}
-                            >
-                              Edit
-                            </button>
-
-                            {emp.active ? (
-                              <button
-                                className="px-3 py-1 bg-gray-600 text-white rounded"
-                                onClick={() => handleToggleStatus(emp.id)}
-                              >
-                                Deactivate
-                              </button>
-                            ) : (
+              {currentEmployees.map((emp) => {
+                console.log("🧱 Rendering:", emp.fullName, "| Active:", emp.isActive, "| Pending:", emp.pendingApprovalByManager);
+                return (
+                  <tr key={emp.id}>
+                    <td className="border p-2">{emp.fullName}</td>
+                    <td className="border p-2">{emp.email}</td>
+                    <td className="border p-2">{emp.position}</td>
+                    <td className="border p-2">
+                      {emp.pendingApprovalByManager
+                        ? "Pending"
+                        : emp.isActive
+                        ? "Active"
+                        : "Inactive"}
+                    </td>
+                    <td className="border p-2 space-x-2">
+                      {emp.pendingApprovalByManager ? (
+                        <>
+                          {user?.role === "MANAGER" && (
+                            <>
                               <button
                                 className="px-3 py-1 bg-green-600 text-white rounded"
-                                onClick={() => handleToggleStatus(emp.id)}
+                                onClick={() => handleApprove(emp.id)}
                               >
-                                Activate
+                                Approve
                               </button>
-                            )}
+                              <button
+                                className="px-3 py-1 bg-red-600 text-white rounded"
+                                onClick={() => handleReject(emp.id)}
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {user?.role === "MANAGER" && (
+                            <>
+                              <button
+                                className="px-3 py-1 bg-yellow-500 text-white rounded"
+                                onClick={() => navigate(`/employees/${emp.id}/edit`)}
+                              >
+                                Edit
+                              </button>
 
-                            <button
-                              className="px-3 py-1 bg-red-500 text-white rounded"
-                              onClick={() => handleDelete(emp.id)}
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                              {emp.isActive ? (
+                                <button
+                                  className="px-3 py-1 bg-gray-600 text-white rounded"
+                                  onClick={() => handleToggleStatus(emp.id)}
+                                >
+                                  Deactivate
+                                </button>
+                              ) : (
+                                <button
+                                  className="px-3 py-1 bg-green-600 text-white rounded"
+                                  onClick={() => handleToggleStatus(emp.id)}
+                                >
+                                  Activate
+                                </button>
+                              )}
+
+                              <button
+                                className="px-3 py-1 bg-red-500 text-white rounded"
+                                onClick={() => handleDelete(emp.id)}
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

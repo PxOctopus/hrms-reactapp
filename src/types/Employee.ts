@@ -13,7 +13,7 @@ export interface Employee {
   address?: string;
   salary?: number;
   annualLeave?: number;
-  active: boolean;
+  isActive: boolean;
   pendingApprovalByManager: boolean;
   createdAt: number;
   updatedAt?: number;
