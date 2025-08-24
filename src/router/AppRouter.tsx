@@ -17,6 +17,11 @@ import ProtectedRoute from "./ProtectedRoute";
 import SetPassword from "../features/auth/SetPassword";
 import UpdateManagerProfile from "../features/profile/UpdateManagerProfile";
 import UpdateEmployeeProfile from "../features/profile/UpdateEmployeeProfile";
+import DashboardNew from "../features/common/DashboardNew";
+
+// ✅ Landing page
+import StafforaLanding from "../features/common/StafforaLanding";
+
 import { useAuth } from "../context/AuthContext";
 
 export default function AppRouter() {
@@ -25,6 +30,12 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Root: Landing first */}
+        <Route
+          path="/"
+          element={user ? <Navigate to="/profile" replace /> : <StafforaLanding />}
+        />
+
         {/* Public routes */}
         <Route
           path="/login"
@@ -37,6 +48,16 @@ export default function AppRouter() {
         <Route path="/verify" element={<EmailVerification />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Must-change-password flow */}
+        <Route
+          path="/set-password"
+          element={
+            <ProtectedRoute>
+              <SetPassword />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected routes */}
         <Route
@@ -55,7 +76,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/profile/update-employee"
           element={
@@ -64,6 +84,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/companies"
           element={
@@ -121,7 +142,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* Admin-only route */}
+        {/* Admin-only */}
         <Route
           path="/admin/pending-managers"
           element={
@@ -131,21 +152,21 @@ export default function AppRouter() {
           }
         />
 
-        {/* Set password page after first login */}
+        {/* New dashboard (protected) */}
         <Route
-          path="/set-password"
+          path="/dashboard-new"
           element={
             <ProtectedRoute>
-              <SetPassword />
+              <DashboardNew />
             </ProtectedRoute>
           }
         />
 
-        {/* Unauthorized fallback */}
+        {/* Unauthorized */}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Catch-all route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all → Landing */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
