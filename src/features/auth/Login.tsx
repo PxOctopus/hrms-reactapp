@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import Brand from "../common/Brand";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -55,14 +56,8 @@ export default function Login() {
     <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
       <div className="flex items-center justify-center bg-gray-50 px-6 py-12">
         <div className="w-full max-w-md">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white">
-              <span className="text-base font-bold">S</span>
-            </div>
-            <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              Staffora
-            </span>
-          </div>
+            {/* Brand */}
+                   <Brand withMargin />
 
           <h1 className="text-2xl font-bold text-slate-900">Sign in</h1>
           <p className="mt-1 text-sm text-slate-600">
@@ -132,7 +127,7 @@ export default function Login() {
 
       <div className="hidden md:flex md:min-h-screen md:items-center md:justify-center bg-[url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2000&auto=format&fit=crop')] bg-center bg-cover">
         <div className="bg-slate-900/50 px-8 py-6 rounded-2xl">
-          <h2 className="text-5xl font-extrabold tracking-tight text-white">Staffora</h2>
+          <h2 className="text-5xl font-extrabold tracking-tight text-white">Peoplea</h2>
           <p className="mt-2 text-slate-200">Human Resource Management System</p>
         </div>
       </div>

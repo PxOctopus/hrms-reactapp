@@ -1,19 +1,14 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import Brand from "./Brand";
 
-export default function StafforaLanding() {
+
+export default function PeopleaLanding() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <header className="sticky top-0 z-40 w-full border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white">
-              <span className="text-base font-bold">S</span>
-            </div>
-            <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              Staffora
-            </span>
-          </div>
+          <Brand />
           <nav className="hidden items-center gap-8 text-sm md:flex">
             <a href="#features" className="hover:text-indigo-700">
               Features
@@ -166,9 +161,9 @@ export default function StafforaLanding() {
       <section id="about" className="mx-auto max-w-7xl px-4 py-16">
         <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2">
           <div>
-            <h2 className="text-3xl font-bold">About Staffora</h2>
+            <h2 className="text-3xl font-bold">About Peoplea</h2>
             <p className="mt-3 text-gray-600">
-              Staffora is built to simplify HR for modern teams. The platform
+              Peoplea is built to simplify HR for modern teams. The platform
               consolidates workflows so leaders can focus on people and outcomes.
             </p>
             <div className="mt-6 flex gap-3">
@@ -273,12 +268,7 @@ export default function StafforaLanding() {
       <footer className="border-t bg-white">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-10 md:grid-cols-4">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white">
-                <span className="text-base font-bold">S</span>
-              </div>
-              <span className="text-lg font-semibold">Staffora</span>
-            </div>
+            <Brand />
             <p className="mt-3 text-sm text-gray-600">
               Modern HR software to onboard, organize, and grow your team.
             </p>
@@ -336,7 +326,7 @@ export default function StafforaLanding() {
           </div>
         </div>
         <div className="border-t py-4 text-center text-xs text-gray-500">
-          © {new Date().getFullYear()} Staffora. All rights reserved.
+          © {new Date().getFullYear()} Peoplea. All rights reserved.
         </div>
       </footer>
     </div>

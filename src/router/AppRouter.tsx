@@ -19,8 +19,8 @@ import UpdateManagerProfile from "../features/profile/UpdateManagerProfile";
 import UpdateEmployeeProfile from "../features/profile/UpdateEmployeeProfile";
 import DashboardNew from "../features/common/DashboardNew";
 
-// ✅ Landing page
-import StafforaLanding from "../features/common/StafforaLanding";
+// Landing page
+import PeopleaLanding from "../features/common/PeopleaLanding";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -33,7 +33,7 @@ export default function AppRouter() {
         {/* Root: Landing first */}
         <Route
           path="/"
-          element={user ? <Navigate to="/profile" replace /> : <StafforaLanding />}
+          element={user ? <Navigate to="/profile" replace /> : <PeopleaLanding />}
         />
 
         {/* Public routes */}
