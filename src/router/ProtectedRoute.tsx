@@ -1,14 +1,22 @@
-// src/routes/ProtectedRoute.tsx
-import React, { ReactElement } from "react";
+// src/router/ProtectedRoute.tsx
+import { ReactElement, ReactNode } from "react";
 import { Navigate, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import axios from "../lib/axios";
+import api from "../lib/axios";
 
 type Role = "ADMIN" | "MANAGER" | "EMPLOYEE";
 
 interface ProtectedRouteProps {
-  children?: ReactElement;
+  /** Optional wrapper usage: <ProtectedRoute><Child/></ProtectedRoute> */
+  children?: ReactElement | ReactNode;
+  /** Optional role guard: any of these roles is allowed */
   roles?: ReadonlyArray<Role>;
+}
+
+/** Normalize role safely without hooks */
+function normalizeRole(val: unknown): Role | undefined {
+  const up = String(val ?? "").toUpperCase();
+  return up === "ADMIN" || up === "MANAGER" || up === "EMPLOYEE" ? (up as Role) : undefined;
 }
 
 const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
@@ -35,18 +43,20 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
     return <Navigate to="/profile" replace />;
   }
 
-  // 4) Optional per-route role guard
-  const role = String(user.role || "").toUpperCase() as Role;
-  if (roles && !roles.includes(role)) {
+  // 4) Role normalization + optional guard (no hooks used here)
+  const role = normalizeRole((user as any)?.role);
+
+  if (roles && role && !roles.includes(role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
   // 5) Pending gates (set-password is allowed even if pending)
   const isSetPasswordRoute = location.pathname === "/set-password";
 
+  // Manager is pending until companyApproved explicitly becomes true
   const isManagerPending = role === "MANAGER" && user.companyApproved === false;
 
-  // Employees are allowed ONLY when flag is explicitly false (approved).
+  // Employee is pending until manager explicitly approves (strict false unlocks)
   const isEmployeePending =
     role === "EMPLOYEE" && user.pendingApprovalByManager !== false;
 
@@ -56,7 +66,7 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   if (isPending) {
     const handleLogout = async () => {
       try {
-        await axios.post("/auth/logout").catch(() => {});
+        await api.post("/auth/logout").catch(() => {});
       } finally {
         localStorage.removeItem("token");
         setUser?.(null);
@@ -64,10 +74,11 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
       }
     };
 
-    // Optional: allow manual refetch if approval happens while this screen is open
     const handleRefresh = async () => {
       try {
-        const { data } = await axios.get("/employees/me");
+        // avoid global /login redirect if this 401s due to race
+        const { data } = await api.get("/employees/me", { skipAuthRedirect: true });
+
         const pending =
           data?.pendingApprovalByManager ??
           (data as any)?.isPendingApprovalByManager ??
@@ -82,7 +93,7 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
           navigate("/dashboard", { replace: true });
         }
       } catch {
-        // silent; you can add a toast here
+        // optional: show a toast
       }
     };
 
@@ -94,7 +105,7 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
       <div className="min-h-[60vh] grid place-items-center px-4">
         <div className="max-w-lg w-full rounded-2xl border bg-white p-6 text-center shadow-sm">
           <h2 className="text-2xl font-semibold">Pending Approval</h2>
-        <p className="mt-2 text-sm text-gray-600">{message}</p>
+          <p className="mt-2 text-sm text-gray-600">{message}</p>
 
           <div className="mt-6 flex items-center justify-center gap-3">
             <button
@@ -119,8 +130,8 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
     );
   }
 
-  // 6) Pass-through to the protected area
-  return children ?? <Outlet />;
+  // 6) Pass-through to the protected area (supports both wrapper and outlet styles)
+  return <>{children ?? <Outlet />}</>;
 };
 
 export default ProtectedRoute;

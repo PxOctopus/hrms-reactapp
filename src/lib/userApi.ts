@@ -1,47 +1,59 @@
-import axios from "./axios";
-import { UserProfile } from "../types/User";
-import {ManagerUpdateProfileRequest} from "../types/User";
-import { EmployeeUpdateProfileRequest } from "../types/Employee";
+import api from "./axios";
+import type { AxiosRequestConfig } from "axios";
+import type { UserProfile } from "../types/User";
+import type { ManagerUpdateProfileRequest } from "../types/User";
+import type { EmployeeUpdateProfileRequest } from "../types/Employee";
 
+/**
+ * Fetch current user's profile.
+ * Default passes `skipAuthRedirect: true` so public browsing doesn't auto-redirect
+ * to /login on a stale token during app bootstrap.
+ */
+export async function getCurrentUser(
+  config?: AxiosRequestConfig
+): Promise<UserProfile> {
+  const res = await api.get<UserProfile>("/users/profile", {
+    skipAuthRedirect: true,   // important for bootstrap UX
+    ...config,
+  });
+  // console.debug("DEBUG user response:", res.data);
+  return res.data;
+}
 
-// Fetch current user's profile
-export const getCurrentUser = async (): Promise<UserProfile> => {
-  const response = await axios.get<UserProfile>("/users/profile");
-   console.log("DEBUG user response:", response.data);
-  return response.data;
-};
+// Admin: get all pending manager requests
+export async function getPendingManagers() {
+  const res = await api.get("/admin/companies/pending");
+  return res.data;
+}
 
-// Get all pending manager requests
-export const getPendingManagers = async () => {
-  const response = await axios.get("/admin/companies/pending");
-  return response.data;
-};
+// Admin: approve a manager's company request
+export async function approveManagerCompany(userId: number) {
+  const res = await api.post(`/admin/companies/approve/${userId}`);
+  return res.data;
+}
 
-// Approve a manager's company request
-export const approveManagerCompany = async (userId: number) => {
-  const response = await axios.post(`/admin/companies/approve/${userId}`);
-  return response.data;
-};
+// Admin: reject a manager's company request
+export async function rejectManagerCompany(userId: number) {
+  const res = await api.post(`/admin/companies/reject/${userId}`);
+  return res.data;
+}
 
-// Reject a manager's company request
-export const rejectManagerCompany = async (userId: number) => {
-  const response = await axios.post(`/admin/companies/reject/${userId}`);
-  return response.data;
-};
+// Update current user's profile (generic)
+export async function updateUserProfile(
+  data: Partial<UserProfile>
+): Promise<UserProfile> {
+  const res = await api.put<UserProfile>("/users/profile", data);
+  return res.data;
+}
 
-// Update current user's profile
-export const updateUserProfile = async (data: Partial<UserProfile>): Promise<UserProfile> => {
-  const response = await axios.put<UserProfile>("/users/profile", data);
-  return response.data;
-};
+// Manager-specific profile update
+export async function updateManagerProfile(data: ManagerUpdateProfileRequest) {
+  const res = await api.put("/users/profile/manager", data);
+  return res.data;
+}
 
-
-export const updateManagerProfile = async (data: ManagerUpdateProfileRequest) => {
-  const response = await axios.put("/users/profile/manager", data);
-  return response.data;
-};
-
-export const updateEmployeeProfile = async (data: EmployeeUpdateProfileRequest) => {
-  const response = await axios.put("/employees/my-profile", data);
-  return response.data;
-};
+// Employee-specific profile update
+export async function updateEmployeeProfile(data: EmployeeUpdateProfileRequest) {
+  const res = await api.put("/employees/my-profile", data);
+  return res.data;
+}

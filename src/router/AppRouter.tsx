@@ -1,3 +1,4 @@
+// src/router/AppRouter.tsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -44,7 +45,10 @@ import AdminDashboard from "../features/admin/AdminDashboard";
 import ManagerDashboard from "../features/manager/ManagerDashboard";
 import EmployeeDashboard from "../features/employees/EmployeeDashboard";
 
-// Simple role-based dashboard switcher
+/**
+ * Chooses the correct dashboard by role.
+ * If user is missing or has an unexpected role, default to EmployeeDashboard.
+ */
 function RoleDashboard() {
   const { user } = useAuth();
   if (user?.role === "ADMIN") return <AdminDashboard />;
@@ -58,13 +62,14 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public landing → if already logged in, go straight to dashboard */}
+        {/* PUBLIC: Landing page.
+            If already authenticated, send users directly to their dashboard. */}
         <Route
           path="/"
           element={user ? <Navigate to="/dashboard" replace /> : <PeopleaLanding />}
         />
 
-        {/* Public auth routes */}
+        {/* PUBLIC: Auth pages (redirect to dashboard if already logged in) */}
         <Route
           path="/login"
           element={user ? <Navigate to="/dashboard" replace /> : <Login />}
@@ -77,7 +82,7 @@ export default function AppRouter() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Must-change-password route is protected but allowed even if pending */}
+        {/* SEMI-PROTECTED: Set password requires auth but no strict role */}
         <Route
           path="/set-password"
           element={
@@ -87,7 +92,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* Public reviews page (if not meant to be public, wrap with ProtectedRoute) */}
+        {/* PUBLIC: Reviews listing; writing a review is restricted to MANAGER */}
         <Route path="/reviews" element={<ReviewsPage />} />
         <Route
           path="/reviews/write"
@@ -98,7 +103,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* App shell + all nested private routes */}
+        {/* PRIVATE APP SHELL: everything under here requires authentication */}
         <Route
           element={
             <ProtectedRoute>
@@ -106,6 +111,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         >
+          {/* Dashboards */}
           <Route path="/dashboard" element={<RoleDashboard />} />
 
           {/* Profile */}
@@ -190,7 +196,7 @@ export default function AppRouter() {
             }
           />
 
-          {/* Admin routes */}
+          {/* Admin */}
           <Route
             path="/admin/pending-managers"
             element={
@@ -207,8 +213,6 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
-
-          {/* /admin root → default subpage */}
           <Route path="/admin" element={<Navigate to="/admin/pending-reviews" replace />} />
         </Route>
 
