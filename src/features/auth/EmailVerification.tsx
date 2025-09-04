@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { verifyEmail } from "../../lib/authApi";
-import { UserProfile } from "../../types/User";
+import type { UserProfile } from "../../types/User";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 const EmailVerification = () => {
   const [searchParams] = useSearchParams();
@@ -16,9 +17,13 @@ const EmailVerification = () => {
       return;
     }
 
+    // Call backend to verify email token
     verifyEmail({ token })
-      .then((response) => {
-         // setUser(response.user); //
+      .then((response: any) => {
+        // If your API returns the user object, you can safely set it here
+        if (response?.user) {
+          setUser(response.user as UserProfile);
+        }
         setStatus("success");
       })
       .catch(() => {
@@ -26,34 +31,78 @@ const EmailVerification = () => {
       });
   }, [searchParams]);
 
-  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md text-center max-w-md w-full">
-        {status === "loading" && <p className="text-gray-700">Verifying your email...</p>}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-black">
+      <div className="relative w-full max-w-md">
+        {/* Brand accent bar */}
+        <div className="absolute -top-1 inset-x-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-600 via-sky-500 to-cyan-400" />
 
-        {status === "success" && (
-          <div>
-            <p className="text-green-600 text-lg font-semibold">
-              Your account has been verified{user?.fullName ? `, ${user.fullName}` : ""}!
-            </p>
-            <p className="mt-4 text-sm text-gray-500">You can now log in to your account.</p>
-
-            <Link
-              to="/login"
-              className="inline-block mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-            >
-              Go to Login
-            </Link>
+        <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900/70">
+          {/* Icon header */}
+          <div className="mb-6 flex items-center justify-center">
+            {status === "loading" && (
+              <Loader2 className="h-10 w-10 animate-spin text-indigo-600" aria-hidden />
+            )}
+            {status === "success" && (
+              <CheckCircle2 className="h-10 w-10 text-emerald-600" aria-hidden />
+            )}
+            {status === "error" && <XCircle className="h-10 w-10 text-rose-600" aria-hidden />}
           </div>
-        )}
 
-        {status === "error" && (
-          <div>
-            <p className="text-red-600 text-lg font-semibold">Invalid or expired verification link.</p>
-            <p className="mt-4 text-sm text-gray-500">Please request a new one or contact support.</p>
-          </div>
-        )}
+          {/* Loading */}
+          {status === "loading" && (
+            <div className="text-center" aria-live="polite">
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Verifying your email…
+              </h1>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                This will only take a moment.
+              </p>
+            </div>
+          )}
+
+          {/* Success */}
+          {status === "success" && (
+            <div className="text-center" aria-live="polite">
+              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+                Your account has been verified{user?.fullName ? `, ${user.fullName}` : ""}!
+              </h1>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                You can now log in to your account.
+              </p>
+
+              <Link
+                to="/login"
+                className="mt-6 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+              >
+                Go to Login
+              </Link>
+
+              <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
+                Need help? Contact Peoplea Support.
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {status === "error" && (
+            <div className="text-center" aria-live="assertive">
+              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+                Invalid or expired verification link.
+              </h1>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                Please request a new one or contact support.
+              </p>
+
+              <Link
+                to="/login"
+                className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 dark:focus:ring-offset-slate-900"
+              >
+                Back to Login
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

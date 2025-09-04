@@ -1,4 +1,4 @@
-import ProfileUpdateForm from "../../components/profile/ProfileUpdateForm";
+import ProfileUpdateForm from "./ProfileUpdateForm";
 import { useAuth } from "../../context/AuthContext";
 import { UserProfile } from "../../types/User";
 import { useNavigate } from "react-router-dom";

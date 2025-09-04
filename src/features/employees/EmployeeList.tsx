@@ -8,53 +8,57 @@ import {
   toggleEmployeeStatus,
 } from "../../lib/employeeApi";
 import { Employee } from "../../types/Employee";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 
-const EmployeeList = () => {
+type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "PENDING";
+
+export default function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isManager = user?.role === "MANAGER";
 
   const fetchEmployees = async () => {
     setLoading(true);
     try {
       const data = await getAllEmployees();
-      console.log("🔁 fetchEmployees - API response:", data);
       setEmployees(data);
       setFilteredEmployees(data);
     } catch (error) {
       toast.error("Failed to fetch employees.");
-      console.error("❌ fetchEmployees error:", error);
+      console.error("fetchEmployees error:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Local filter & search
   useEffect(() => {
     let filtered = employees;
 
-    if (searchTerm) {
-      filtered = filtered.filter((emp) =>
-        emp.fullName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      filtered = filtered.filter((emp) => emp.fullName.toLowerCase().includes(q));
     }
 
     if (statusFilter !== "ALL") {
       filtered = filtered.filter((emp) => {
         if (statusFilter === "ACTIVE") return emp.isActive && !emp.pendingApprovalByManager;
         if (statusFilter === "INACTIVE") return !emp.isActive && !emp.pendingApprovalByManager;
-        if (statusFilter === "PENDING") return emp.pendingApprovalByManager;
+        if (statusFilter === "PENDING") return !!emp.pendingApprovalByManager;
         return true;
       });
     }
@@ -67,7 +71,7 @@ const EmployeeList = () => {
     try {
       await approveEmployee(id);
       toast.success("Employee approved.");
-      await fetchEmployees();
+      fetchEmployees();
     } catch (err) {
       toast.error("Approval failed.");
       console.error(err);
@@ -78,7 +82,7 @@ const EmployeeList = () => {
     try {
       await rejectEmployee(id);
       toast.info("Employee rejected.");
-      await fetchEmployees();
+      fetchEmployees();
     } catch (err) {
       toast.error("Rejection failed.");
       console.error(err);
@@ -90,7 +94,7 @@ const EmployeeList = () => {
     try {
       await deleteEmployee(id);
       toast.success("Employee deleted.");
-      await fetchEmployees();
+      fetchEmployees();
     } catch (err) {
       toast.error("Deletion failed.");
       console.error(err);
@@ -99,112 +103,122 @@ const EmployeeList = () => {
 
   const handleToggleStatus = async (id: number) => {
     try {
-      console.log("⚙️ Toggling employee status, id:", id);
       await toggleEmployeeStatus(id);
-      console.log("✅ Status toggled on backend, now fetching updated employees...");
-      await fetchEmployees();
+      fetchEmployees();
     } catch (err) {
       toast.error("Status update failed.");
-      console.error("❌ toggleEmployeeStatus error:", err);
+      console.error(err);
     }
   };
 
+  // Pagination
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentEmployees = filteredEmployees.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage));
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Employee List</h2>
+    <div className="space-y-4">
+      {/* Header */}
+      <header className="px-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Employees</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Search, filter, and manage your team members.
+        </p>
+      </header>
 
-      <div className="flex flex-wrap gap-4 items-center mb-4">
-        <input
-          type="text"
-          placeholder="Search by name..."
-          className="px-4 py-2 border border-gray-300 rounded w-full max-w-xs"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* Filters / actions card */}
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-1 flex-wrap gap-3">
+            <input
+              type="text"
+              placeholder="Search by name…"
+              className="w-full max-w-xs rounded-lg border px-3 py-2 text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
 
-        <select
-          className="px-4 py-2 border border-gray-300 rounded"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="PENDING">Pending</option>
-        </select>
+            <select
+              className="w-40 rounded-lg border px-3 py-2 text-sm"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            >
+              <option value="ALL">All</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="PENDING">Pending</option>
+            </select>
+          </div>
 
-        {user?.role === "MANAGER" && (
-          <button
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            onClick={() => navigate("/employees/new")}
-          >
-            Add New Employee
-          </button>
-        )}
+          {isManager && (
+            <button
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              onClick={() => navigate("/employees/new")}
+            >
+              Add New Employee
+            </button>
+          )}
+        </div>
       </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : currentEmployees.length === 0 ? (
-        <p>No employees found.</p>
-      ) : (
-        <>
-          <table className="w-full border border-gray-300">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border p-2">Name</th>
-                <th className="border p-2">Email</th>
-                <th className="border p-2">Position</th>
-                <th className="border p-2">Status</th>
-                <th className="border p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentEmployees.map((emp) => {
-                console.log("🧱 Rendering:", emp.fullName, "| Active:", emp.isActive, "| Pending:", emp.pendingApprovalByManager);
-                return (
-                  <tr key={emp.id}>
-                    <td className="border p-2">{emp.fullName}</td>
-                    <td className="border p-2">{emp.email}</td>
-                    <td className="border p-2">{emp.position}</td>
-                    <td className="border p-2">
-                      {emp.pendingApprovalByManager
-                        ? "Pending"
-                        : emp.isActive
-                        ? "Active"
-                        : "Inactive"}
+      {/* Table card */}
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        {loading ? (
+          <div className="text-sm text-gray-500">Loading…</div>
+        ) : currentEmployees.length === 0 ? (
+          <div className="text-sm text-gray-500">No employees found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Position</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentEmployees.map((emp) => (
+                  <tr key={emp.id} className="border-t align-top">
+                    <td className="px-4 py-3">{emp.fullName}</td>
+                    <td className="px-4 py-3">{emp.email}</td>
+                    <td className="px-4 py-3">{emp.position || "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full border px-2 py-0.5 text-xs">
+                        {emp.pendingApprovalByManager
+                          ? "Pending"
+                          : emp.isActive
+                          ? "Active"
+                          : "Inactive"}
+                      </span>
                     </td>
-                    <td className="border p-2 space-x-2">
-                      {emp.pendingApprovalByManager ? (
-                        <>
-                          {user?.role === "MANAGER" && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {emp.pendingApprovalByManager ? (
+                          isManager && (
                             <>
                               <button
-                                className="px-3 py-1 bg-green-600 text-white rounded"
+                                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
                                 onClick={() => handleApprove(emp.id)}
                               >
                                 Approve
                               </button>
                               <button
-                                className="px-3 py-1 bg-red-600 text-white rounded"
+                                className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700"
                                 onClick={() => handleReject(emp.id)}
                               >
                                 Reject
                               </button>
                             </>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {user?.role === "MANAGER" && (
+                          )
+                        ) : (
+                          isManager && (
                             <>
                               <button
-                                className="px-3 py-1 bg-yellow-500 text-white rounded"
+                                className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600"
                                 onClick={() => navigate(`/employees/${emp.id}/edit`)}
                               >
                                 Edit
@@ -212,14 +226,14 @@ const EmployeeList = () => {
 
                               {emp.isActive ? (
                                 <button
-                                  className="px-3 py-1 bg-gray-600 text-white rounded"
+                                  className="rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
                                   onClick={() => handleToggleStatus(emp.id)}
                                 >
                                   Deactivate
                                 </button>
                               ) : (
                                 <button
-                                  className="px-3 py-1 bg-green-600 text-white rounded"
+                                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
                                   onClick={() => handleToggleStatus(emp.id)}
                                 >
                                   Activate
@@ -227,43 +241,40 @@ const EmployeeList = () => {
                               )}
 
                               <button
-                                className="px-3 py-1 bg-red-500 text-white rounded"
+                                className="rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600"
                                 onClick={() => handleDelete(emp.id)}
                               >
                                 Delete
                               </button>
                             </>
-                          )}
-                        </>
-                      )}
+                          )
+                        )}
+                      </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
 
-          <div className="mt-4 flex justify-center space-x-2">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                className={`px-3 py-1 rounded ${
-                  currentPage === i + 1
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-black"
-                }`}
-                onClick={() => setCurrentPage(i + 1)}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {/* Pagination */}
+            <div className="mt-4 flex justify-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  className={`rounded-lg px-3 py-1.5 text-sm ${
+                    currentPage === i + 1
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                  onClick={() => setCurrentPage(i + 1)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
           </div>
-        </>
-      )}
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
+        )}
+      </div>
     </div>
   );
-};
-
-export default EmployeeList;
+}

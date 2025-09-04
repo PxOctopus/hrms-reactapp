@@ -1,8 +1,8 @@
+// src/features/auth/Login.tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { login } from "../../lib/authApi";
-import { getCurrentUser } from "../../lib/userApi";
 import { LoginRequest } from "../../types/Auth";
 import { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -19,11 +19,12 @@ type FormData = z.infer<typeof schema>;
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { setUser } = useAuth();
+  const location = useLocation() as any;
+  const { refreshUser } = useAuth(); // <-- use refreshUser from AuthContext
   const [errorMessage, setErrorMessage] = useState("");
 
-  const from = (location.state as any)?.from?.pathname || "/profile";
+  // Where to go after login if user came from a protected route
+  const from = location?.state?.from?.pathname || "/dashboard"; // default to dashboard (or "/profile" if you prefer)
 
   const {
     register,
@@ -34,18 +35,28 @@ export default function Login() {
   const onSubmit = async (data: LoginRequest) => {
     try {
       setErrorMessage("");
-      const response = await login(data);
-      localStorage.setItem("token", response.accessToken);
-      const userData = await getCurrentUser();
-      setUser(userData);
 
-      if (response.mustChangePassword) {
-        toast.info("Please set a new password before accessing your profile.");
+      // 1) Authenticate to get a token (JWT or session)
+      const response = await login(data); // expected: { accessToken, mustChangePassword? }
+      localStorage.setItem("token", response.accessToken);
+
+      // 2) Immediately refresh the user snapshot:
+      //    - pulls /auth/me
+      //    - if EMPLOYEE, also pulls /employees/me
+      //    - merges pendingApprovalByManager so ProtectedRoute won't show "Pending"
+      await refreshUser();
+
+      // 3) If backend says password must be changed, force that flow first
+      if (response?.mustChangePassword) {
+        toast.info("Please set a new password before accessing your workspace.");
         navigate("/set-password", { replace: true, state: { from } });
-      } else {
-        navigate(from, { replace: true });
+        return;
       }
+
+      // 4) Otherwise go to the intended page (or dashboard)
+      navigate(from, { replace: true });
     } catch (error: any) {
+      // Show a friendly error
       setErrorMessage(
         error?.response?.data?.message || "Login failed. Please try again."
       );
@@ -56,8 +67,8 @@ export default function Login() {
     <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
       <div className="flex items-center justify-center bg-gray-50 px-6 py-12">
         <div className="w-full max-w-md">
-            {/* Brand */}
-                   <Brand withMargin />
+          {/* Brand */}
+          <Brand withMargin />
 
           <h1 className="text-2xl font-bold text-slate-900">Sign in</h1>
           <p className="mt-1 text-sm text-slate-600">
@@ -79,9 +90,7 @@ export default function Login() {
                 className="w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-200"
               />
               {errors.email && (
-                <p className="mt-1 text-xs text-red-600">
-                  {errors.email.message}
-                </p>
+                <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
               )}
             </div>
 
@@ -108,15 +117,15 @@ export default function Login() {
             </button>
 
             <div className="flex items-center justify-between text-sm">
-              <Link
-                to="/forgot-password"
-                className="text-indigo-700 hover:underline"
-              >
+              <Link to="/forgot-password" className="text-indigo-700 hover:underline">
                 Forgot password?
               </Link>
               <span className="text-slate-600">
                 No account?{" "}
-                <Link to="/register" className="font-medium text-indigo-700 hover:underline">
+                <Link
+                  to="/register"
+                  className="font-medium text-indigo-700 hover:underline"
+                >
                   Create one
                 </Link>
               </span>

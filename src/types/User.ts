@@ -17,6 +17,7 @@ export interface UserProfile {
   companyApproved: boolean;
   phoneNumber?: string | null;
   mustChangePassword: boolean;
+  pendingApprovalByManager?: boolean; // <-- NEW
 }
 
 export interface PendingManager {

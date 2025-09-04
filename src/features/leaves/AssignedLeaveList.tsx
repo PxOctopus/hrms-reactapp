@@ -2,56 +2,62 @@ import { useEffect, useState } from "react";
 import { getLeavesAssignedByManager } from "../../lib/leaveApi";
 import { Leave } from "../../types/Leave";
 
-const AssignedLeavesList = () => {
-  const [assignedLeaves, setAssignedLeaves] = useState<Leave[]>([]);
+export default function AssignedLeavesList() {
+  const [rows, setRows] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAssignedLeaves = async () => {
+    const load = async () => {
       try {
         const data = await getLeavesAssignedByManager();
-        setAssignedLeaves(data);
-      } catch (err) {
-        console.error("Failed to fetch assigned leaves", err);
+        setRows(data);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchAssignedLeaves();
+    load();
   }, []);
 
-  if (loading) return <p>Loading...</p>;
-
   return (
-    <div className="mt-8">
-      <h3 className="text-lg font-bold mb-2">Leaves Assigned by You</h3>
-      <table className="w-full border">
-        <thead>
-          <tr>
-            <th className="py-2 px-4 text-left">Employee</th>
-            <th className="py-2 px-4 text-left">Type</th>
-            <th className="py-2 px-4 text-left">Dates</th>
-            <th className="py-2 px-4 text-left">Reason</th>
-            <th className="py-2 px-4 text-left">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {assignedLeaves.map((leave) => (
-            <tr key={leave.id} className="border-t">
-              <td className="py-2 px-4">{leave.employeeFullName}</td>
-              <td className="py-2 px-4">{leave.leaveDefinitionName}</td>
-              <td className="py-2 px-4">
-                {leave.startDate} - {leave.endDate}
-              </td>
-              <td className="py-2 px-4">{leave.reason}</td>
-              <td className="py-2 px-4">{leave.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+    <section className="rounded-2xl border bg-white p-4 shadow-sm">
+      <h2 className="mb-3 font-semibold">Assigned by Me</h2>
 
-export default AssignedLeavesList;
+      {loading ? (
+        <div className="text-sm text-gray-500">Loading…</div>
+      ) : rows.length === 0 ? (
+        <div className="text-sm text-gray-500">No assigned leaves.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-4 py-3">Employee</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Dates</th>
+                <th className="px-4 py-3">Reason</th>
+                <th className="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((l) => (
+                <tr key={l.id} className="border-t">
+                  <td className="px-4 py-3">{l.employeeFullName}</td>
+                  <td className="px-4 py-3">{l.leaveDefinitionName}</td>
+                  <td className="px-4 py-3">
+                    {l.startDate} – {l.endDate}
+                  </td>
+                  <td className="px-4 py-3">{l.reason || "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full border px-2 py-0.5 text-xs">
+                      {l.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}

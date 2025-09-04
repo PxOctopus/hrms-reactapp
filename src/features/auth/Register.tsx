@@ -15,7 +15,7 @@ const schema = z
       .string()
       .min(8, "Password must be at least 8 characters")
       .max(20)
-      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$/, {
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/, {
         message: "Password must contain uppercase, lowercase, and number",
       }),
     confirmPassword: z.string().min(1, "Confirm password is required"),

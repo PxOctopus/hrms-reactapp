@@ -1,28 +1,56 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import ProtectedRoute from "./ProtectedRoute";
+import Shell from "../app/Shell";
+
+// Auth
 import Login from "../features/auth/Login";
 import Register from "../features/auth/Register";
 import EmailVerification from "../features/auth/EmailVerification";
 import ResetPassword from "../features/auth/ResetPassword";
 import ForgotPassword from "../features/auth/ForgotPassword";
+import SetPassword from "../features/auth/SetPassword";
+
+// Profile
 import ProfileSettings from "../features/profile/ProfileSettings";
+import UpdateManagerProfile from "../features/profile/UpdateManagerProfile";
+import UpdateEmployeeProfile from "../features/profile/UpdateEmployeeProfile";
+
+// Company / Employees / Leaves
 import CompanyList from "../features/companies/CompanyList";
 import EmployeeList from "../features/employees/EmployeeList";
 import EmployeeForm from "../features/employees/EmployeeForm";
 import LeaveManagement from "../features/leaves/LeaveManagement";
 import AssignedLeavesList from "../features/leaves/AssignedLeaveList";
 import PendingLeaves from "../features/leaves/PendingLeaves";
+
+// Reviews
+import ReviewForm from "../features/reviews/ReviewForm";
+import ReviewsPage from "../features/reviews/ReviewsPage";
+
+// Shifts
+import ShiftManagement from "../features/shifts/ShiftManagement";
+
+// Admin
 import PendingManagerList from "../features/admin/PendingManagerList";
+import AdminPendingReviews from "../features/admin/AdminPendingReviews";
+
+// Common
 import Unauthorized from "../features/common/Unauthorized";
-import ProtectedRoute from "./ProtectedRoute";
-import SetPassword from "../features/auth/SetPassword";
-import UpdateManagerProfile from "../features/profile/UpdateManagerProfile";
-import UpdateEmployeeProfile from "../features/profile/UpdateEmployeeProfile";
-import DashboardNew from "../features/common/DashboardNew";
+import PeopleaLanding from "../features/landing/PeopleaLanding";
 
-// Landing page
-import PeopleaLanding from "../features/common/PeopleaLanding";
+// Dashboards
+import AdminDashboard from "../features/admin/AdminDashboard";
+import ManagerDashboard from "../features/manager/ManagerDashboard";
+import EmployeeDashboard from "../features/employees/EmployeeDashboard";
 
-import { useAuth } from "../context/AuthContext";
+// Simple role-based dashboard switcher
+function RoleDashboard() {
+  const { user } = useAuth();
+  if (user?.role === "ADMIN") return <AdminDashboard />;
+  if (user?.role === "MANAGER") return <ManagerDashboard />;
+  return <EmployeeDashboard />;
+}
 
 export default function AppRouter() {
   const { user } = useAuth();
@@ -30,26 +58,26 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Root: Landing first */}
+        {/* Public landing → if already logged in, go straight to dashboard */}
         <Route
           path="/"
-          element={user ? <Navigate to="/profile" replace /> : <PeopleaLanding />}
+          element={user ? <Navigate to="/dashboard" replace /> : <PeopleaLanding />}
         />
 
-        {/* Public routes */}
+        {/* Public auth routes */}
         <Route
           path="/login"
-          element={user ? <Navigate to="/profile" replace /> : <Login />}
+          element={user ? <Navigate to="/dashboard" replace /> : <Login />}
         />
         <Route
           path="/register"
-          element={user ? <Navigate to="/profile" replace /> : <Register />}
+          element={user ? <Navigate to="/dashboard" replace /> : <Register />}
         />
         <Route path="/verify" element={<EmailVerification />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Must-change-password flow */}
+        {/* Must-change-password route is protected but allowed even if pending */}
         <Route
           path="/set-password"
           element={
@@ -59,113 +87,136 @@ export default function AppRouter() {
           }
         />
 
-        {/* Protected routes */}
+        {/* Public reviews page (if not meant to be public, wrap with ProtectedRoute) */}
+        <Route path="/reviews" element={<ReviewsPage />} />
         <Route
-          path="/profile"
+          path="/reviews/write"
+          element={
+            <ProtectedRoute roles={["MANAGER"]}>
+              <ReviewForm />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* App shell + all nested private routes */}
+        <Route
           element={
             <ProtectedRoute>
-              <ProfileSettings />
+              <Shell />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/profile/update-manager"
-          element={
-            <ProtectedRoute roles={["MANAGER"]}>
-              <UpdateManagerProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile/update-employee"
-          element={
-            <ProtectedRoute roles={["EMPLOYEE"]}>
-              <UpdateEmployeeProfile />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/dashboard" element={<RoleDashboard />} />
 
-        <Route
-          path="/companies"
-          element={
-            <ProtectedRoute>
-              <CompanyList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employees"
-          element={
-            <ProtectedRoute roles={["MANAGER"]}>
-              <EmployeeList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employees/new"
-          element={
-            <ProtectedRoute roles={["MANAGER"]}>
-              <EmployeeForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employees/:id/edit"
-          element={
-            <ProtectedRoute roles={["MANAGER"]}>
-              <EmployeeForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leaves"
-          element={
-            <ProtectedRoute roles={["EMPLOYEE", "MANAGER"]}>
-              <LeaveManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/assigned-leaves"
-          element={
-            <ProtectedRoute roles={["MANAGER"]}>
-              <AssignedLeavesList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/pending-leaves"
-          element={
-            <ProtectedRoute roles={["MANAGER"]}>
-              <PendingLeaves />
-            </ProtectedRoute>
-          }
-        />
+          {/* Profile */}
+          <Route path="/profile" element={<ProfileSettings />} />
+          <Route
+            path="/profile/update-manager"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <UpdateManagerProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/update-employee"
+            element={
+              <ProtectedRoute roles={["EMPLOYEE"]}>
+                <UpdateEmployeeProfile />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Admin-only */}
-        <Route
-          path="/admin/pending-managers"
-          element={
-            <ProtectedRoute roles={["ADMIN"]}>
-              <PendingManagerList />
-            </ProtectedRoute>
-          }
-        />
+          {/* Companies / Employees */}
+          <Route path="/companies" element={<CompanyList />} />
+          <Route
+            path="/employees"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <EmployeeList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/new"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <EmployeeForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/:id/edit"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <EmployeeForm />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* New dashboard (protected) */}
-        <Route
-          path="/dashboard-new"
-          element={
-            <ProtectedRoute>
-              <DashboardNew />
-            </ProtectedRoute>
-          }
-        />
+          {/* Leaves */}
+          <Route
+            path="/leaves"
+            element={
+              <ProtectedRoute roles={["EMPLOYEE", "MANAGER"]}>
+                <LeaveManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assigned-leaves"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <AssignedLeavesList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pending-leaves"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <PendingLeaves />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Unauthorized */}
+          {/* Shifts */}
+          <Route
+            path="/shifts"
+            element={
+              <ProtectedRoute roles={["MANAGER", "EMPLOYEE"]}>
+                <ShiftManagement />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin routes */}
+          <Route
+            path="/admin/pending-managers"
+            element={
+              <ProtectedRoute roles={["ADMIN"]}>
+                <PendingManagerList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/pending-reviews"
+            element={
+              <ProtectedRoute roles={["ADMIN"]}>
+                <AdminPendingReviews />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* /admin root → default subpage */}
+          <Route path="/admin" element={<Navigate to="/admin/pending-reviews" replace />} />
+        </Route>
+
+        {/* Legacy redirects */}
+        <Route path="/dashboard-new/*" element={<Navigate to="/dashboard" replace />} />
+
+        {/* Fallbacks */}
         <Route path="/unauthorized" element={<Unauthorized />} />
-
-        {/* Catch-all → Landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

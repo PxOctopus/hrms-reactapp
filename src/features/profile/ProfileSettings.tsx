@@ -14,7 +14,7 @@ import {
 } from "../../lib/employeeApi";
 import { Employee } from "../../types/Employee";
 import { toast } from "react-toastify";
-import ProfileInfo from "../../components/profile/ProfileInfo";
+import ProfileInfo from "./ProfileInfo";
 
 const ProfileSettings = () => {
   const [user, setUser] = useState<UserProfile | null>(null);

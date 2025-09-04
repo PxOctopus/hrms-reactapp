@@ -1,6 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import Brand from "./Brand";
+import Brand from "../common/Brand";
+import StatsStrip from "./StatsStrip";
+import ReviewsShowcase from "../reviews/ReviewsShowcase";
 
 
 export default function PeopleaLanding() {
@@ -126,7 +128,11 @@ export default function PeopleaLanding() {
           ))}
         </div>
       </section>
+      {/* Social proof strip */}
+      <StatsStrip />
 
+      {/* Public reviews block */}
+      <ReviewsShowcase />
       <section id="pricing" className="mx-auto max-w-7xl px-4 py-16">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold">Pricing</h2>

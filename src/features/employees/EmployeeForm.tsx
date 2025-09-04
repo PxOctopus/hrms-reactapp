@@ -1,38 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { ContractType } from "../../types/enums";
-import {
-  createEmployee,
-  getEmployeeById,
-  updateEmployee,
-} from "../../lib/employeeApi";
+import { createEmployee, getEmployeeById, updateEmployee } from "../../lib/employeeApi";
 import { EmployeeCreateRequest } from "../../types/Employee";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 
-// Validation schema using Zod
+// Validation schema
 const schema = z.object({
-  fullName: z.string().min(1, "Full name is required").optional(), // optional olarak tanımlanacak
+  fullName: z.string().optional(),
   position: z.string().min(1, "Position is required"),
   contractType: z.nativeEnum(ContractType, {
     errorMap: () => ({ message: "Contract type is required" }),
   }),
   phoneNumber: z.string().optional(),
   address: z.string().optional(),
-  salary: z.string().regex(/^\d+(\.\d{1,2})?$/, {
-    message: "Salary must be a valid number",
-  }),
-  annualLeave: z.string().regex(/^\d+$/, {
-    message: "Annual leave must be a valid number",
-  }),
+  salary: z.string().regex(/^\d+(\.\d{1,2})?$/, { message: "Salary must be a valid number" }),
+  annualLeave: z.string().regex(/^\d+$/, { message: "Annual leave must be a valid number" }),
   birthDate: z.string().optional(),
   hireDate: z.string().optional(),
   endDate: z.string().optional(),
-  email: z.string().email("Invalid email").optional(),
+  email: z.string().email("Invalid email").optional(), // will be required for manager via UI
 });
 
 type FormData = z.infer<typeof schema>;
@@ -42,16 +33,29 @@ export default function EmployeeForm() {
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
   const { user: currentUser } = useAuth();
+  const isManager = currentUser?.role === "MANAGER";
+
+  // derive manager's email domain (e.g., "gmail.com")
+  const companyDomain = useMemo(() => {
+    const e = currentUser?.email || "";
+    const at = e.indexOf("@");
+    return at > -1 ? e.slice(at + 1).toLowerCase() : "";
+  }, [currentUser?.email]);
+
+  // local-part state used only for split email UI
+  const [emailLocal, setEmailLocal] = useState("");
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
+  // Prefill on edit
   useEffect(() => {
     if (isEditMode && id) {
       getEmployeeById(Number(id))
@@ -63,9 +67,7 @@ export default function EmployeeForm() {
             phoneNumber: employee.phoneNumber || "",
             address: employee.address || "",
             salary: employee.salary ? employee.salary.toString() : "",
-            annualLeave: employee.annualLeave
-              ? employee.annualLeave.toString()
-              : "",
+            annualLeave: employee.annualLeave ? employee.annualLeave.toString() : "",
             birthDate: employee.birthDate || "",
             hireDate: employee.hireDate || "",
             endDate: employee.endDate || "",
@@ -79,35 +81,38 @@ export default function EmployeeForm() {
     }
   }, [id, isEditMode, reset]);
 
+  // keep combined email value in form when using split email UI
+  useEffect(() => {
+    if (!isEditMode && isManager && companyDomain) {
+      setValue("email", emailLocal ? `${emailLocal}@${companyDomain}` : "");
+    }
+  }, [emailLocal, companyDomain, isEditMode, isManager, setValue]);
+
   const onSubmit = async (data: FormData) => {
     try {
+      // require email for manager create flow
+      if (isManager && !isEditMode && !data.email) {
+        throw new Error("Email is required");
+      }
+
       const payload: EmployeeCreateRequest = {
         ...data,
         salary: parseFloat(data.salary),
         annualLeave: parseInt(data.annualLeave),
-        pendingApprovalByManager:
-          currentUser?.role === "MANAGER" ? false : true,
-        email:
-          currentUser?.role === "MANAGER"
-            ? data.email!
-            : currentUser?.email || "",
-        fullName:
-          currentUser?.role === "MANAGER"
-            ? data.fullName!
-            : currentUser?.fullName || "", // fallback for employee self-registration
+        pendingApprovalByManager: isManager ? false : true,
+        email: isManager ? data.email! : currentUser?.email || "",
+        fullName: isManager ? data.fullName! : currentUser?.fullName || "",
       };
 
       if (isEditMode && id) {
         await updateEmployee(Number(id), payload);
-        toast.success("Employee updated successfully!");
+        toast.success("Employee updated successfully.");
       } else {
         await createEmployee(payload);
-        toast.success("Employee created successfully!");
+        toast.success("Employee created successfully.");
       }
 
-      setTimeout(() => {
-        navigate("/employees");
-      }, 1500);
+      setTimeout(() => navigate("/employees"), 800);
     } catch (error) {
       toast.error("Submission failed.");
       console.error("Submit error:", error);
@@ -115,121 +120,173 @@ export default function EmployeeForm() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md max-w-xl mx-auto mt-8">
-      <h2 className="text-2xl font-bold mb-6">
-        {isEditMode ? "Edit Employee" : "Add New Employee"}
-      </h2>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <header className="px-1">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {isEditMode ? "Edit Employee" : "Add New Employee"}
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          {isEditMode
+            ? "Update the employee details below."
+            : "Fill in the details to add a new team member."}
+        </p>
+      </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {currentUser?.role === "MANAGER" && (
-          <>
+      <form onSubmit={handleSubmit(onSubmit)} className="rounded-2xl border bg-white p-4 shadow-sm space-y-4">
+        {/* Manager-only identity fields */}
+        {isManager && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Full name</label>
+              <input
+                type="text"
+                {...register("fullName", { required: "Full name is required" })}
+                placeholder="Jane Doe"
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+              />
+              {errors.fullName && <p className="mt-1 text-xs text-rose-600">{errors.fullName.message}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Email</label>
+
+              {/* Split email UI when creating and domain is known */}
+              {!isEditMode && companyDomain ? (
+                <>
+                  <div className="flex w-full overflow-hidden rounded-lg border">
+                    <input
+                      type="text"
+                      value={emailLocal}
+                      onChange={(e) => setEmailLocal(e.target.value.trim())}
+                      placeholder="username"
+                      className="flex-1 px-3 py-2 text-sm outline-none"
+                    />
+                    <span className="border-l bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                      @{companyDomain}
+                    </span>
+                  </div>
+                  {/* hidden registered field to satisfy form validation */}
+                  <input type="hidden" {...register("email", { required: "Email is required" })} />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Will be saved as <strong>{emailLocal ? `${emailLocal}@${companyDomain}` : `@${companyDomain}`}</strong>
+                  </p>
+                  {errors.email && <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>}
+                </>
+              ) : (
+                // Fallback: regular email input (edit mode or domain not derivable)
+                <>
+                  <input
+                    type="email"
+                    {...register("email", { required: "Email is required" })}
+                    placeholder={`jane@${companyDomain || "company.com"}`}
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                  />
+                  {errors.email && <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Job basics */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Position</label>
             <input
               type="text"
-              {...register("fullName", {
-                required: "Full name is required",
-              })}
-              placeholder="Full Name"
-              className="w-full border px-3 py-2 rounded"
+              {...register("position")}
+              placeholder="e.g., Software Engineer"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
             />
-            {errors.fullName && (
-              <p className="text-red-500 text-sm">{errors.fullName.message}</p>
-            )}
+            {errors.position && <p className="mt-1 text-xs text-rose-600">{errors.position.message}</p>}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Contract type</label>
+            <select {...register("contractType")} className="w-full rounded-lg border px-3 py-2 text-sm">
+              <option value="">Select contract type…</option>
+              {Object.values(ContractType).map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            {errors.contractType && <p className="mt-1 text-xs text-rose-600">{errors.contractType.message}</p>}
+          </div>
+        </div>
 
+        {/* Contacts */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Phone number</label>
             <input
-              type="email"
-              {...register("email", {
-                required: "Email is required",
-              })}
-              placeholder="Employee Email"
-              className="w-full border px-3 py-2 rounded"
+              type="text"
+              {...register("phoneNumber")}
+              placeholder="+90 5xx xxx xx xx"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
             />
-            {errors.email && (
-              <p className="text-red-500 text-sm">{errors.email.message}</p>
-            )}
-          </>
-        )}
-
-        <input
-          type="text"
-          {...register("position")}
-          placeholder="Position"
-          className="w-full border px-3 py-2 rounded"
-        />
-        {errors.position && (
-          <p className="text-red-500 text-sm">{errors.position.message}</p>
-        )}
-
-        <select {...register("contractType")} className="w-full border px-3 py-2 rounded">
-          <option value="">Select Contract Type</option>
-          {Object.values(ContractType).map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-        {errors.contractType && (
-          <p className="text-red-500 text-sm">{errors.contractType.message}</p>
-        )}
-
-        <input
-          type="text"
-          {...register("phoneNumber")}
-          placeholder="Phone Number"
-          className="w-full border px-3 py-2 rounded"
-        />
-
-        <input
-          type="text"
-          {...register("address")}
-          placeholder="Address"
-          className="w-full border px-3 py-2 rounded"
-        />
-
-        <input
-          type="text"
-          {...register("salary")}
-          placeholder="Salary"
-          className="w-full border px-3 py-2 rounded"
-        />
-        {errors.salary && (
-          <p className="text-red-500 text-sm">{errors.salary.message}</p>
-        )}
-
-        <input
-          type="text"
-          {...register("annualLeave")}
-          placeholder="Annual Leave"
-          className="w-full border px-3 py-2 rounded"
-        />
-        {errors.annualLeave && (
-          <p className="text-red-500 text-sm">{errors.annualLeave.message}</p>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
-          <input type="date" {...register("birthDate")} className="w-full border px-3 py-2 rounded" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Address</label>
+            <input
+              type="text"
+              {...register("address")}
+              placeholder="Street, city, country"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hire Date</label>
-          <input type="date" {...register("hireDate")} className="w-full border px-3 py-2 rounded" />
+        {/* Compensation & leave */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Salary</label>
+            <input
+              type="text"
+              {...register("salary")}
+              placeholder="e.g., 50000"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            {errors.salary && <p className="mt-1 text-xs text-rose-600">{errors.salary.message}</p>}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Annual leave (days)</label>
+            <input
+              type="text"
+              {...register("annualLeave")}
+              placeholder="e.g., 20"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            {errors.annualLeave && <p className="mt-1 text-xs text-rose-600">{errors.annualLeave.message}</p>}
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">End Date (if applicable)</label>
-          <input type="date" {...register("endDate")} className="w-full border px-3 py-2 rounded" />
+        {/* Dates */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Birth date</label>
+            <input type="date" {...register("birthDate")} className="w-full rounded-lg border px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Hire date</label>
+            <input type="date" {...register("hireDate")} className="w-full rounded-lg border px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">End date (if any)</label>
+            <input type="date" {...register("endDate")} className="w-full rounded-lg border px-3 py-2 text-sm" />
+          </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
-        >
-          {isSubmitting ? "Submitting..." : isEditMode ? "Update" : "Create"}
-        </button>
+        {/* Submit */}
+        <div className="pt-1">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {isSubmitting ? "Submitting…" : isEditMode ? "Update" : "Create"}
+          </button>
+        </div>
       </form>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 }
