@@ -1,16 +1,30 @@
 export type Shift = {
   id: number;
-  name: string;
-  startTime: string; // "08:00"
-  endTime: string;   // "16:00"
-  days: number[];    // 1-7 (Mon..Sun)
+  name: string;        // backend: shiftName
+  startTime: string;   // "HH:mm"
+  endTime: string;     // "HH:mm"
   companyId: number;
 };
 
 export type ShiftAssignment = {
   id: number;
-  shiftId: number;
   employeeId: number;
-  startDate: string; // ISO
-  endDate?: string;  // ISO
+  shiftId: number;
+  shiftDate: string;   // "YYYY-MM-DD"
+  startTime?: string;  // optional: denormalized from backend range endpoint
+  endTime?: string;    // optional: denormalized from backend range endpoint
+  active?: boolean;
+};
+
+/**
+ * Lite representation of employees for assignment UI.
+ * - label: display name (backend.displayName || email)
+ * - email: kept for tooltip/secondary info
+ * - status: ACTIVE means selectable, INACTIVE means disabled
+ */
+export type EmployeeLite = {
+  id: number;
+  label: string;                 // display name (fullName or email fallback)
+  email: string;
+  status: "ACTIVE" | "INACTIVE";
 };

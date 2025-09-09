@@ -16,7 +16,6 @@ function domainFromEmail(email?: string | null) {
 }
 
 // Build a brand from the first label of the domain and UPPERCASE (EN)
-// "acme-corp.com" -> "ACME CORP", "eu.peoplea.io" -> "EU"
 function brandFromDomainEnglishUpper(domain: string) {
   if (!domain) return "";
   const firstLabel = domain.split(".")[0] || domain;
@@ -34,18 +33,28 @@ function initials(name: string) {
 
 export default function Shell() {
   const { user, logout } = useAuth();
-  const role = user?.role as "ADMIN" | "MANAGER" | "EMPLOYEE";
+  const role = (user?.role ?? "EMPLOYEE") as "ADMIN" | "MANAGER" | "EMPLOYEE";
   const [collapsed, setCollapsed] = useState(false);
 
-  const items = useMemo(
-    () =>
-      MENU.map((i) => ({
-        ...i,
-        visible: i.roles.includes(role),
-        children: (i.children ?? []).filter((c) => c.roles.includes(role)),
-      })).filter((i) => i.visible),
-    [role]
-  );
+  // Build menu items filtered and adjusted by role
+  const items = useMemo(() => {
+    return MENU.map((i) => {
+      const visible = i.roles.includes(role);
+      if (!visible) return null;
+
+      // Special handling for "shifts" menu
+      const isShifts = i.key === "shifts";
+      const path = isShifts
+        ? role === "MANAGER" || role === "ADMIN"
+          ? "/shifts"
+          : "/my-shifts"
+        : i.path;
+
+      const children = (i.children ?? []).filter((c) => c.roles.includes(role));
+
+      return { ...i, path, children };
+    }).filter(Boolean) as any[];
+  }, [role]);
 
   const handleLogout = () => {
     logout?.();
@@ -80,7 +89,7 @@ export default function Shell() {
         {/* Menu */}
         <nav className="mt-6 space-y-1">
           {items.map((item) => (
-            <SidebarItem key={item.path} item={item} collapsed={collapsed} />
+            <SidebarItem key={item.key} item={item} collapsed={collapsed} />
           ))}
         </nav>
 

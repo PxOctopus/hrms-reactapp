@@ -31,6 +31,7 @@ import ReviewsPage from "../features/reviews/ReviewsPage";
 
 // Shifts
 import ShiftManagement from "../features/shifts/ShiftManagement";
+import MyShifts from "../features/shifts/MyShifts";
 
 // Admin
 import PendingManagerList from "../features/admin/PendingManagerList";
@@ -187,14 +188,22 @@ export default function AppRouter() {
           />
 
           {/* Shifts */}
-          <Route
-            path="/shifts"
-            element={
-              <ProtectedRoute roles={["MANAGER", "EMPLOYEE"]}>
-                <ShiftManagement />
-              </ProtectedRoute>
-            }
-          />
+<Route
+  path="/shifts"
+  element={
+    <ProtectedRoute roles={["MANAGER"]}>
+      <ShiftManagement />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/my-shifts"
+  element={
+    <ProtectedRoute roles={["EMPLOYEE"]}>
+      <MyShifts />
+    </ProtectedRoute>
+  }
+/>
 
           {/* Admin */}
           <Route
