@@ -1,87 +1,79 @@
 import React, { useEffect, useState } from "react";
 import {
   assetApi,
-  type EmployeeAssetResponseDTO, // SLIM DTO for /assets/my
+  type EmployeeAssetResponseDTO,
   type AssetConfirmRequestDTO,
   type AssetReturnRequestDTO,
 } from "../../lib/assetApi";
+import { StatusBadge } from "../assets/components/StatusBadge";
 
-/**
- * Employee-facing page that lists the current user's assets
- * and allows actions: Confirm, Request Return, Report Issue.
- * NOTE: List uses the SLIM DTO (EmployeeAssetResponseDTO).
- * Actions return FULL DTO on the wire but we only reload the list.
- */
 const MyAssets: React.FC = () => {
   const [items, setItems] = useState<EmployeeAssetResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  // local UI state for issue reporting
+  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [issueText, setIssueText] = useState("");
   const [issueAssetId, setIssueAssetId] = useState<number | null>(null);
   const [submittingId, setSubmittingId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
-    setErr(null);
     try {
-      const data = await assetApi.myAssets(); // returns EmployeeAssetResponseDTO[]
+      const data = await assetApi.myAssets();
       setItems(data);
     } catch (e: any) {
-      console.error(e);
-      setErr(e?.response?.data?.message ?? "Failed to load assets.");
+      setBanner({ type: "error", text: e?.response?.data?.message ?? "Failed to load assets." });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // initial fetch
     void load();
   }, []);
 
-  // Confirm that the employee has received the asset
+  const flash = (type: "success" | "error", text: string) => {
+    setBanner({ type, text });
+    setTimeout(() => setBanner(null), 2000);
+  };
+
   const confirm = async (id: number) => {
     setSubmittingId(id);
     try {
-      const body: AssetConfirmRequestDTO = {}; // note is optional
-      await assetApi.confirm(id, body); // returns FULL DTO (ignored here)
+      const body: AssetConfirmRequestDTO = {};
+      await assetApi.confirm(id, body);
+      flash("success", "Confirmed. Manager notified.");
       await load();
-    } catch (e) {
-      console.error(e);
-      alert("Failed to confirm asset.");
+    } catch {
+      flash("error", "Failed to confirm.");
     } finally {
       setSubmittingId(null);
     }
   };
 
-  // Request returning the asset to inventory
   const requestReturn = async (id: number) => {
     setSubmittingId(id);
     try {
-      const body: AssetReturnRequestDTO = { reason: "User requested return" };
-      await assetApi.requestReturn(id, body); // returns FULL DTO (ignored here)
+      const body: AssetReturnRequestDTO = { reason: "Return requested by employee" };
+      await assetApi.requestReturn(id, body);
+      flash("success", "Return request sent to manager.");
       await load();
-    } catch (e) {
-      console.error(e);
-      alert("Failed to request return.");
+    } catch {
+      flash("error", "Failed to request return.");
     } finally {
       setSubmittingId(null);
     }
   };
 
-  // Report an issue/loss/damage for the asset
   const reportIssue = async (id: number, description: string) => {
     setSubmittingId(id);
     try {
-      await assetApi.reportIssue(id, { issueType: "ISSUE", description }); // returns FULL DTO
+      await assetApi.reportIssue(id, { issueType: "ISSUE", description });
+      flash("success", "Issue reported to manager.");
       await load();
       setIssueAssetId(null);
       setIssueText("");
-    } catch (e) {
-      console.error(e);
-      alert("Failed to report issue.");
+    } catch {
+      flash("error", "Failed to report issue.");
     } finally {
       setSubmittingId(null);
     }
@@ -91,18 +83,20 @@ const MyAssets: React.FC = () => {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">My Assets</h1>
-        <button
-          className="px-3 py-2 rounded-lg border"
-          onClick={load}
-          disabled={loading}
-        >
+        <button className="px-3 py-2 rounded-lg border" onClick={load} disabled={loading}>
           Refresh
         </button>
       </div>
 
-      {err && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-          {err}
+      {banner && (
+        <div
+          className={`rounded-lg px-4 py-2 text-sm border ${
+            banner.type === "success"
+              ? "bg-green-50 border-green-200 text-green-700"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {banner.text}
         </div>
       )}
 
@@ -112,76 +106,89 @@ const MyAssets: React.FC = () => {
         <div className="text-sm text-gray-600">You have no assigned assets.</div>
       ) : (
         <div className="grid gap-3">
-          {items.map((a) => (
-            <div
-              key={a.id}
-              className="rounded-xl border p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-            >
-              <div>
-                <div className="font-medium">{a.name}</div>
-                <div className="text-sm text-gray-600">{a.description ?? "-"}</div>
-              </div>
-
-              <div className="flex gap-2">
-                {/* Confirm: keep UI simple; backend guards invalid states */}
-                <button
-                  onClick={() => confirm(a.id)}
-                  className="px-3 py-2 rounded-md border hover:bg-gray-50"
-                  disabled={submittingId === a.id}
-                  title="Confirm you received this asset"
-                >
-                  {submittingId === a.id ? "Working…" : "Confirm"}
-                </button>
-
-                {/* Request Return */}
-                <button
-                  onClick={() => requestReturn(a.id)}
-                  className="px-3 py-2 rounded-md border hover:bg-gray-50"
-                  disabled={submittingId === a.id}
-                  title="Request returning the asset to inventory"
-                >
-                  Request Return
-                </button>
-
-                {/* Report Issue (inline input toggles) */}
-                {issueAssetId === a.id ? (
-                  <div className="flex gap-2">
-                    <input
-                      className="border rounded-md px-2 py-1"
-                      placeholder="Describe the issue"
-                      value={issueText}
-                      onChange={(e) => setIssueText(e.target.value)}
-                    />
-                    <button
-                      className="px-3 py-2 rounded-md bg-blue-600 text-white disabled:opacity-50"
-                      onClick={() => reportIssue(a.id, issueText)}
-                      disabled={!issueText.trim() || submittingId === a.id}
-                    >
-                      Send
-                    </button>
-                    <button
-                      className="px-3 py-2 rounded-md border"
-                      onClick={() => {
-                        setIssueAssetId(null);
-                        setIssueText("");
-                      }}
-                    >
-                      Cancel
-                    </button>
+          {items.map((a) => {
+            const canConfirm = a.status === "ASSIGNED" && !a.confirmed;
+            return (
+              <div
+                key={a.id}
+                className="rounded-xl border p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+              >
+                <div>
+                  <div className="font-medium">{a.name}</div>
+                  <div className="text-sm text-gray-600">
+                    {a.serialNumber ? `SN: ${a.serialNumber}` : "-"}
                   </div>
-                ) : (
+                  <div className="mt-1 flex items-center gap-2">
+                    <StatusBadge status={a.status as any} />
+                    {a.confirmed && <span className="text-xs text-green-600">confirmed</span>}
+                    {a.assignedDate && (
+                      <span className="text-xs text-gray-500">
+                        • assigned {new Date(a.assignedDate).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
                   <button
-                    onClick={() => setIssueAssetId(a.id)}
-                    className="px-3 py-2 rounded-md border hover:bg-gray-50"
-                    title="Report a problem with this asset"
-                    disabled={submittingId === a.id}
+                    onClick={() => confirm(a.id)}
+                    className={`px-3 py-2 rounded-md text-white ${
+                      canConfirm ? "bg-green-600 hover:bg-green-700" : "bg-gray-300 cursor-not-allowed"
+                    }`}
+                    disabled={!canConfirm || submittingId === a.id}
+                    title="Confirm you received this asset"
                   >
-                    Report Issue
+                    {submittingId === a.id ? "Working…" : "Confirm"}
                   </button>
-                )}
+
+                  <button
+                    onClick={() => requestReturn(a.id)}
+                    className="px-3 py-2 rounded-md text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
+                    disabled={submittingId === a.id}
+                    title="Request returning the asset to inventory"
+                  >
+                    Request Return
+                  </button>
+
+                  {issueAssetId === a.id ? (
+                    <div className="flex gap-2">
+                      <input
+                        className="border rounded-md px-2 py-1"
+                        placeholder="Describe the issue"
+                        value={issueText}
+                        onChange={(e) => setIssueText(e.target.value)}
+                      />
+                      <button
+                        className="px-3 py-2 rounded-md bg-blue-600 text-white disabled:opacity-50"
+                        onClick={() => reportIssue(a.id, issueText)}
+                        disabled={!issueText.trim() || submittingId === a.id}
+                      >
+                        Send
+                      </button>
+                      <button
+                        className="px-3 py-2 rounded-md border"
+                        onClick={() => {
+                          setIssueAssetId(null);
+                          setIssueText("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIssueAssetId(a.id)}
+                      className="px-3 py-2 rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                      disabled={submittingId === a.id}
+                      title="Report a problem with this asset"
+                    >
+                      Report Issue
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

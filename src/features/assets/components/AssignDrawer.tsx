@@ -24,7 +24,7 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // reset local state when closing
+  // Kapandığında lokal state'i sıfırla
   useEffect(() => {
     if (!open) {
       setEmployees([]);
@@ -35,7 +35,7 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
     }
   }, [open]);
 
-  // Load employees when drawer opens
+  // Açılınca assign edilebilir çalışanları yükle
   useEffect(() => {
     if (!open) return;
     const fetchEmployees = async () => {
@@ -61,12 +61,12 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
   }, [open, loadAssignable]);
 
   const handleAssign = async () => {
-    if (!assetId || selectedEmployee === "") return; // ← empty guard
+    if (!assetId || selectedEmployee === "") return; // boş seçim guard
     setSubmitting(true);
     setErrorMsg(null);
     try {
       await assetApi.assign(assetId, { employeeId: Number(selectedEmployee) });
-      onAssigned(); // refresh parent list
+      onAssigned(); // parent list refresh
       onClose();
     } catch (e: any) {
       console.error(e);
@@ -82,6 +82,8 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
 
   if (!open) return null;
 
+  const disableAll = submitting || !assetId;
+
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-end z-50">
       <div className="w-96 bg-white p-6 shadow-xl flex flex-col">
@@ -90,7 +92,7 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
           <button
             onClick={onClose}
             className="rounded-md border px-3 py-1"
-            disabled={submitting}
+            disabled={disableAll}
           >
             Close
           </button>
@@ -108,11 +110,12 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
               Employee
               <select
                 className="mt-1 w-full border rounded-md px-3 py-2"
-                value={selectedEmployee === "" ? "" : String(selectedEmployee)} // ← keep "" as ""
+                value={selectedEmployee === "" ? "" : String(selectedEmployee)} // "" state'ini koru
                 onChange={(e) => {
                   const v = e.target.value;
-                  setSelectedEmployee(v === "" ? "" : Number(v)); // ← "" → "" (not 0)
+                  setSelectedEmployee(v === "" ? "" : Number(v)); // "" → "" (0'a düşmesin)
                 }}
+                disabled={disableAll}
               >
                 <option value="">Select employee</option>
                 {employees.map((emp) => (
@@ -125,7 +128,7 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
 
             <button
               onClick={handleAssign}
-              disabled={submitting || selectedEmployee === ""} // ← correct disable
+              disabled={disableAll || selectedEmployee === ""}
               className="mt-4 w-full bg-blue-600 text-white py-2 rounded-md disabled:opacity-50"
             >
               {submitting ? "Assigning…" : "Assign"}
@@ -136,7 +139,7 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
         <button
           onClick={onClose}
           className="mt-4 text-sm text-gray-600 hover:underline"
-          disabled={submitting}
+          disabled={disableAll}
         >
           Cancel
         </button>

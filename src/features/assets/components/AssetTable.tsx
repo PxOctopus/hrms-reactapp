@@ -29,21 +29,26 @@ const Th: React.FC<{
   sortKey?: keyof AssetResponseDTO;
   sortDir?: "asc" | "desc";
   onSort?: (k: keyof AssetResponseDTO) => void;
-}> = ({ label, col, sortKey, sortDir, onSort }) => (
-  <th className="px-4 py-2 text-left">
-    <button
-      type="button"
-      className="inline-flex items-center gap-1 hover:underline"
-      onClick={() => onSort?.(col)}
-      title="Sort"
-    >
-      {label}
-      <span className="text-[10px]">
-        {sortKey === col ? (sortDir === "asc" ? "▲" : "▼") : "⋯"}
-      </span>
-    </button>
-  </th>
-);
+}> = ({ label, col, sortKey, sortDir, onSort }) => {
+  const aria =
+    sortKey === col ? (sortDir === "asc" ? "ascending" : "descending") : "none";
+
+  return (
+    <th className="px-4 py-2 text-left" aria-sort={aria as any}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 hover:underline"
+        onClick={() => onSort?.(col)}
+        title="Sort"
+      >
+        {label}
+        <span className="text-[10px]">
+          {sortKey === col ? (sortDir === "asc" ? "▲" : "▼") : "⋯"}
+        </span>
+      </button>
+    </th>
+  );
+};
 
 const AssetTable: React.FC<Props> = ({
   data,
@@ -61,7 +66,6 @@ const AssetTable: React.FC<Props> = ({
             <Th label="#" col="id" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Name" col="assetName" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Serial" col="serialNumber" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-            {/* State hücresini "Status" üzerinden sıralatacağız */}
             <Th label="State" col="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Assigned To" col="employeeName" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Updated" col="updatedAt" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
@@ -93,7 +97,7 @@ const AssetTable: React.FC<Props> = ({
                   <td className="px-4 py-2">{a.assetName}</td>
                   <td className="px-4 py-2">{a.serialNumber ?? "-"}</td>
 
-                  {/* --- State (Status + Condition) --- */}
+                  {/* State (Status + Condition) */}
                   <td className="px-4 py-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={a.status} className="cursor-default" />

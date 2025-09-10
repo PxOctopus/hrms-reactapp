@@ -4,7 +4,7 @@ import { assetApi, AssetCondition } from "../../../lib/assetApi";
 type Props = {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void; // refresh list
+  onCreated: () => void; // refresh list after create
 };
 
 const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
@@ -13,7 +13,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [condition, setCondition] = useState<AssetCondition>(AssetCondition.NEW); // NEW by default
+  const [condition, setCondition] = useState<AssetCondition>(AssetCondition.NEW); // default NEW
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -31,7 +31,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
         condition, // NEW or USED
         location: location.trim() || null,
       });
-      onCreated(); // refresh list
+      onCreated();
       onClose();
     } catch (e: any) {
       console.error(e);
@@ -64,6 +64,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
               className="mt-1 w-full rounded border px-3 py-2"
               value={assetName}
               onChange={(e) => setAssetName(e.target.value)}
+              placeholder="e.g. Dell Latitude"
             />
           </label>
 
@@ -73,6 +74,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
               className="mt-1 w-full rounded border px-3 py-2"
               value={serialNumber}
               onChange={(e) => setSerialNumber(e.target.value)}
+              placeholder="e.g. PROD-7J3M-K9X2"
             />
           </label>
 
@@ -85,8 +87,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
             >
               <option value={AssetCondition.NEW}>New</option>
               <option value={AssetCondition.USED}>Used</option>
-              {/* DAMAGED intentionally omitted on create:
-                  assets become DAMAGED via issue report or maintenance flow */}
+              {/* Damaged yok: issue/maintenance akışı ile yönetilecek */}
             </select>
           </label>
 
@@ -96,6 +97,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
               className="mt-1 w-full rounded border px-3 py-2"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
+              placeholder="e.g. Laptop"
             />
           </label>
 
@@ -106,6 +108,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="Notes about this asset"
             />
           </label>
 
@@ -115,6 +118,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
               className="mt-1 w-full rounded border px-3 py-2"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g. Storage A / Shelf 3"
             />
           </label>
 

@@ -1,5 +1,5 @@
 // src/features/asset/pages/ManagerAssetList.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { assetApi, type AssetResponseDTO, AssetStatus } from "../../../lib/assetApi";
 import AssetTable from "../components/AssetTable";
 import Pagination from "../components/Pagination";
@@ -8,7 +8,6 @@ import AssignDrawer from "../components/AssignDrawer";
 
 const PAGE_SIZE = 10;
 
-// sortable keys
 type SortableKeys =
   | "id"
   | "assetName"
@@ -28,12 +27,12 @@ const ManagerAssetList: React.FC = () => {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
 
-  // Drawers
   const [openCreate, setOpenCreate] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignId, setAssignId] = useState<number | null>(null);
 
-  const load = async () => {
+  // ⬇️ useCallback: status değiştiğinde load yeniden oluşturulur
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const list = await assetApi.list(status === "" ? undefined : (status as AssetStatus));
@@ -41,13 +40,13 @@ const ManagerAssetList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    void load();
   }, [status]);
 
-  // filter
+  // ⬇️ Etkiyi load'a bağla (eslint uyarısı kaybolur)
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return raw;
@@ -60,10 +59,8 @@ const ManagerAssetList: React.FC = () => {
     );
   }, [raw, query]);
 
-  // normalize for sort
   const norm = (val: unknown) => {
     if (val == null) return "";
-    // ISO date/datetime → number (ms)
     if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val)) {
       const t = Date.parse(val);
       return Number.isNaN(t) ? String(val).toLowerCase() : t;
@@ -73,7 +70,6 @@ const ManagerAssetList: React.FC = () => {
     return String(val).toLowerCase();
   };
 
-  // sort
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((x, y) => {
@@ -85,7 +81,6 @@ const ManagerAssetList: React.FC = () => {
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  // paginate
   const total = sorted.length;
   const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageSafe = Math.min(page, maxPage);
@@ -107,11 +102,13 @@ const ManagerAssetList: React.FC = () => {
     setSortKey("createdAt");
     setSortDir("desc");
     setPage(1);
-    void load(); // refresh
+    setAssignOpen(false);
+    setAssignId(null);
+    void load(); // mevcut filtrelerle yeniden çek
   };
 
   useEffect(() => {
-    setPage(1); // resert page on filter/sort change
+    setPage(1); // filtre/sort değişince sayfayı başa al
   }, [query, status, sortKey, sortDir]);
 
   return (
@@ -136,7 +133,6 @@ const ManagerAssetList: React.FC = () => {
             ))}
           </select>
 
-          {/* New Asset */}
           <button
             className="px-3 py-2 rounded-lg bg-indigo-600 text-white"
             onClick={() => setOpenCreate(true)}
@@ -176,7 +172,6 @@ const ManagerAssetList: React.FC = () => {
         onPageChange={setPage}
       />
 
-      {/* Drawers */}
       <CreateAssetDrawer
         open={openCreate}
         onClose={() => setOpenCreate(false)}
@@ -189,7 +184,10 @@ const ManagerAssetList: React.FC = () => {
       <AssignDrawer
         open={assignOpen}
         assetId={assignId}
-        onClose={() => setAssignOpen(false)}
+        onClose={() => {
+          setAssignOpen(false);
+          setAssignId(null);
+        }}
         onAssigned={() => void load()}
       />
     </div>

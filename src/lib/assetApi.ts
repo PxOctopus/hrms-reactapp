@@ -1,7 +1,8 @@
-// src/lib/assetApi.ts
 import api from "./axios";
 
-/* ----- Enums ----- */
+/* =========================
+ * Enums
+ * ========================= */
 export enum AssetStatus {
   IN_STOCK = "IN_STOCK",
   ASSIGNED = "ASSIGNED",
@@ -15,58 +16,73 @@ export enum AssetStatus {
 export enum AssetCondition {
   NEW = "NEW",
   USED = "USED",
-  DAMAGED = "DAMAGED",
+  // Backend'de varsa açarsın:
+  // REFURBISHED = "REFURBISHED",
 }
 
-/* ----- RESPONSE DTOs (match backend) ----- */
+/* =========================
+ * Response DTOs
+ * ========================= */
 
-// FULL DTO (manager/admin views)
+/** FULL DTO (manager/admin listeleri & aksiyon dönüşleri) */
 export interface AssetResponseDTO {
   id: number;
   assetName: string;
-  serialNumber: string;
+  serialNumber?: string | null;
   category?: string | null;
   description?: string | null;
+
   status: AssetStatus;
-  condition: AssetCondition;
+  condition?: AssetCondition | null;
+
   employeeId?: number | null;
   employeeName?: string | null;
   managerId?: number | null;
   companyId?: number | null;
-  assignedDate?: string | null;   // ISO date (LocalDate)
+
+  assignedDate?: string | null; // ISO date (yyyy-mm-dd)
   confirmed: boolean;
+
   location?: string | null;
-  createdAt: string;              // ISO datetime (LocalDateTime)
-  updatedAt: string;              // ISO datetime
+  createdAt: string;            // ISO datetime
+  updatedAt: string;            // ISO datetime
 }
 
-// SLIM DTO (employee self view: /assets/my)
+/** SLIM DTO (employee /assets/my için) */
 export interface EmployeeAssetResponseDTO {
   id: number;
   name: string;
   description?: string | null;
-  employeeFullName?: string | null;
+
+  serialNumber?: string | null;
+  status: AssetStatus;
+  confirmed: boolean;
+  assignedDate?: string | null; // ISO date
 }
 
 export interface AssetEventResponseDTO {
   id: number;
+  assetId: number;
   type: string;
+  actorUserId?: number | null;
   metadataJson?: string | null;
   createdAt: string; // ISO datetime
-  // Note: backend mapper does NOT include assetId or actorUserId by default
 }
 
 export interface AssetMaintenanceResponseDTO {
   id: number;
+  assetId: number;
   vendorName?: string | null;
   ticketNumber?: string | null;
-  status: "OPEN" | "DONE";
+  status: string; // "OPEN" | "DONE"
   notes?: string | null;
   openedDate: string; // ISO date
   closedDate?: string | null;
 }
 
-/* ----- REQUEST DTOs ----- */
+/* =========================
+ * Request DTOs
+ * ========================= */
 export interface AssetCreateRequestDTO {
   assetName: string;
   serialNumber: string;
@@ -75,6 +91,7 @@ export interface AssetCreateRequestDTO {
   condition?: AssetCondition | null;
   location?: string | null;
 }
+
 export interface AssetUpdateRequestDTO {
   assetName?: string;
   category?: string | null;
@@ -82,32 +99,40 @@ export interface AssetUpdateRequestDTO {
   condition?: AssetCondition | null;
   location?: string | null;
 }
+
 export interface AssetAssignRequestDTO {
   employeeId: number;
   note?: string | null;
 }
+
 export interface AssetChangeStatusRequestDTO {
   status: AssetStatus;
   note?: string | null;
 }
+
 export interface AssetConfirmRequestDTO {
   note?: string | null;
 }
+
 export interface AssetReturnRequestDTO {
   reason?: string | null;
 }
+
 export interface MaintenanceOpenRequestDTO {
   vendorName?: string | null;
   notes?: string | null;
 }
+
 export interface MaintenanceCloseRequestDTO {
   notes?: string | null;
   restoreToAssigned: boolean;
 }
 
-/* ----- API ----- */
+/* =========================
+ * API
+ * ========================= */
 export const assetApi = {
-  // ------- Manager endpoints (return FULL) -------
+  // ------- Manager endpoints -------
   create: (body: AssetCreateRequestDTO) =>
     api.post<AssetResponseDTO>("/assets", body).then((r) => r.data),
 
@@ -131,7 +156,7 @@ export const assetApi = {
 
   // ------- Employee endpoints -------
   myAssets: () =>
-    api.get<EmployeeAssetResponseDTO[]>("/assets/my").then((r) => r.data), // SLIM
+    api.get<EmployeeAssetResponseDTO[]>("/assets/my").then((r) => r.data),
 
   confirm: (id: number, body: AssetConfirmRequestDTO) =>
     api.post<AssetResponseDTO>(`/assets/${id}/confirm`, body).then((r) => r.data),
@@ -147,7 +172,9 @@ export const assetApi = {
     api.get<AssetEventResponseDTO[]>(`/assets/${id}/events`).then((r) => r.data),
 };
 
-/* ----- React Query keys (optional) ----- */
+/* =========================
+ * React Query keys (opsiyonel)
+ * ========================= */
 export const assetKeys = {
   all: ["assets"] as const,
   list: (status?: AssetStatus) => [...assetKeys.all, "list", status] as const,
