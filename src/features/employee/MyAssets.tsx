@@ -4,16 +4,33 @@ import {
   type EmployeeAssetResponseDTO,
   type AssetConfirmRequestDTO,
   type AssetReturnRequestDTO,
+  type AssetIssueReportRequestDTO,
+  AssetStatus,
 } from "../../lib/assetApi";
 import { StatusBadge } from "../assets/components/StatusBadge";
+
+const btnBase =
+  "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+const btnGhost =
+  "border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 focus:ring-gray-300";
+const btnPrimary =
+  "bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-300";
+const btnWarn =
+  "bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-300";
+const btnInfo =
+  "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-300";
 
 const MyAssets: React.FC = () => {
   const [items, setItems] = useState<EmployeeAssetResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [issueText, setIssueText] = useState("");
+
+  // Issue flow state
   const [issueAssetId, setIssueAssetId] = useState<number | null>(null);
-  const [submittingId, setSubmittingId] = useState<number | null>(null);
+  const [issueType, setIssueType] = useState<AssetStatus | "">("");
+
+  // Single busy flag per-asset
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -27,9 +44,7 @@ const MyAssets: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    void load();
-  }, []);
+  useEffect(() => { void load(); }, []);
 
   const flash = (type: "success" | "error", text: string) => {
     setBanner({ type, text });
@@ -37,7 +52,7 @@ const MyAssets: React.FC = () => {
   };
 
   const confirm = async (id: number) => {
-    setSubmittingId(id);
+    setBusyId(id);
     try {
       const body: AssetConfirmRequestDTO = {};
       await assetApi.confirm(id, body);
@@ -46,12 +61,12 @@ const MyAssets: React.FC = () => {
     } catch {
       flash("error", "Failed to confirm.");
     } finally {
-      setSubmittingId(null);
+      setBusyId(null);
     }
   };
 
   const requestReturn = async (id: number) => {
-    setSubmittingId(id);
+    setBusyId(id);
     try {
       const body: AssetReturnRequestDTO = { reason: "Return requested by employee" };
       await assetApi.requestReturn(id, body);
@@ -60,30 +75,65 @@ const MyAssets: React.FC = () => {
     } catch {
       flash("error", "Failed to request return.");
     } finally {
-      setSubmittingId(null);
+      setBusyId(null);
     }
   };
 
-  const reportIssue = async (id: number, description: string) => {
-    setSubmittingId(id);
+  // NEW: Undo return request
+  const cancelReturnRequest = async (id: number) => {
+    setBusyId(id);
     try {
-      await assetApi.reportIssue(id, { issueType: "ISSUE", description });
+      await assetApi.cancelReturnRequest(id);
+      flash("success", "Return request canceled.");
+      await load();
+    } catch {
+      flash("error", "Failed to cancel return request.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reportIssue = async (id: number, type: AssetStatus) => {
+    setBusyId(id);
+    try {
+      const payload: AssetIssueReportRequestDTO = { issueType: type };
+      await assetApi.reportIssue(id, payload);
       flash("success", "Issue reported to manager.");
       await load();
       setIssueAssetId(null);
-      setIssueText("");
+      setIssueType("");
     } catch {
       flash("error", "Failed to report issue.");
     } finally {
-      setSubmittingId(null);
+      setBusyId(null);
     }
   };
+
+  // NEW: Undo issue report (BE rule: allowed for MAINTENANCE/LOST, NOT for RETIRED)
+  const cancelIssueReport = async (id: number) => {
+    setBusyId(id);
+    try {
+      await assetApi.cancelIssueReport(id);
+      flash("success", "Issue report canceled.");
+      await load();
+    } catch {
+      flash("error", "Failed to cancel issue report.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const isIssueState = (s: string | AssetStatus) =>
+    s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST || s === AssetStatus.RETIRED;
+
+  const canUndoIssue = (s: string | AssetStatus) =>
+    s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST; // RETIRED => terminal → undo yok
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">My Assets</h1>
-        <button className="px-3 py-2 rounded-lg border" onClick={load} disabled={loading}>
+        <h1 className="text-2xl font-semibold tracking-tight">My Assets</h1>
+        <button className={`${btnBase} ${btnGhost}`} onClick={load} disabled={loading}>
           Refresh
         </button>
       </div>
@@ -108,16 +158,28 @@ const MyAssets: React.FC = () => {
         <div className="grid gap-3">
           {items.map((a) => {
             const canConfirm = a.status === "ASSIGNED" && !a.confirmed;
+            const isRetired = a.status === "RETIRED";
+            const isBusy = busyId === a.id;
+            const isReturnRequested = a.status === "RETURN_REQUESTED";
+            const issueState = isIssueState(a.status);
+            const undoIssue = canUndoIssue(a.status);
+
             return (
               <div
                 key={a.id}
-                className="rounded-xl border p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                className="rounded-2xl border bg-white p-4 shadow-sm md:flex md:items-center md:justify-between gap-3"
               >
-                <div>
-                  <div className="font-medium">{a.name}</div>
-                  <div className="text-sm text-gray-600">
-                    {a.serialNumber ? `SN: ${a.serialNumber}` : "-"}
+                {/* LEFT: meta */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {a.category && (
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 border text-gray-700">
+                        {a.category}
+                      </span>
+                    )}
+                    <div className="font-semibold">{a.name}</div>
                   </div>
+                  <div className="text-sm text-gray-600">{a.serialNumber ? `SN: ${a.serialNumber}` : "-"}</div>
                   <div className="mt-1 flex items-center gap-2">
                     <StatusBadge status={a.status as any} />
                     {a.confirmed && <span className="text-xs text-green-600">confirmed</span>}
@@ -127,50 +189,100 @@ const MyAssets: React.FC = () => {
                       </span>
                     )}
                   </div>
+                  {isRetired && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      Status is <span className="font-medium">RETIRED</span>. Further changes are disabled.
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex gap-2">
+                {/* RIGHT: actions */}
+                <div className="mt-3 md:mt-0 flex flex-wrap gap-2 md:items-center">
+                  {/* Confirm */}
                   <button
                     onClick={() => confirm(a.id)}
-                    className={`px-3 py-2 rounded-md text-white ${
-                      canConfirm ? "bg-green-600 hover:bg-green-700" : "bg-gray-300 cursor-not-allowed"
-                    }`}
-                    disabled={!canConfirm || submittingId === a.id}
+                    className={`${btnBase} ${canConfirm ? btnPrimary : "bg-gray-200 text-gray-500"}`}
+                    disabled={!canConfirm || isBusy || isRetired}
                     title="Confirm you received this asset"
+                    aria-disabled={!canConfirm || isBusy || isRetired}
                   >
-                    {submittingId === a.id ? "Working…" : "Confirm"}
+                    {isBusy && canConfirm ? "Working…" : "Confirm"}
                   </button>
 
-                  <button
-                    onClick={() => requestReturn(a.id)}
-                    className="px-3 py-2 rounded-md text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
-                    disabled={submittingId === a.id}
-                    title="Request returning the asset to inventory"
-                  >
-                    Request Return
-                  </button>
+                  {/* Request Return / Undo Return */}
+                  {isReturnRequested ? (
+                    <button
+                      onClick={() => cancelReturnRequest(a.id)}
+                      className={`${btnBase} ${btnGhost}`}
+                      disabled={isBusy || isRetired}
+                      title="Cancel return request"
+                    >
+                      {isBusy ? "Working…" : "Undo Return Request"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => requestReturn(a.id)}
+                      className={`${btnBase} ${btnWarn}`}
+                      disabled={isBusy || isRetired}
+                      title="Request returning the asset to inventory"
+                      aria-disabled={isBusy || isRetired}
+                    >
+                      {isBusy ? "Working…" : "Request Return"}
+                    </button>
+                  )}
 
-                  {issueAssetId === a.id ? (
-                    <div className="flex gap-2">
-                      <input
-                        className="border rounded-md px-2 py-1"
-                        placeholder="Describe the issue"
-                        value={issueText}
-                        onChange={(e) => setIssueText(e.target.value)}
-                      />
+                  {/* Issue flow:
+                      - Eğer issue state'te DEĞİLSE → Report Issue açılır (select + Send)
+                      - Eğer issue state'teyse:
+                          - MAINTENANCE/LOST → Undo Issue Report
+                          - RETIRED → terminal; sadece disabled rozet göstermek istersen burada buton koyma/disabled tut
+                  */}
+                  {issueState ? (
+                    undoIssue ? (
                       <button
-                        className="px-3 py-2 rounded-md bg-blue-600 text-white disabled:opacity-50"
-                        onClick={() => reportIssue(a.id, issueText)}
-                        disabled={!issueText.trim() || submittingId === a.id}
+                        onClick={() => cancelIssueReport(a.id)}
+                        className={`${btnBase} ${btnGhost}`}
+                        disabled={isBusy}
+                        title="Cancel issue report"
                       >
-                        Send
+                        {isBusy ? "Working…" : "Undo Issue Report"}
                       </button>
+                    ) : (
+                      // RETIRED: undo yok; istersen tamamen gizleyebilirsin
+                      <button className={`${btnBase} ${btnGhost}`} disabled aria-disabled="true" title="Not allowed">
+                        Issue Reported
+                      </button>
+                    )
+                  ) : issueAssetId === a.id ? (
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <select
+                        className="rounded-full border px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                        value={issueType}
+                        onChange={(e) => setIssueType(e.target.value as AssetStatus)}
+                        disabled={isBusy}
+                        aria-label="Select issue type"
+                      >
+                        <option value="">Select issue type…</option>
+                        <option value={AssetStatus.MAINTENANCE}>Maintenance</option>
+                        <option value={AssetStatus.LOST}>Lost</option>
+                        <option value={AssetStatus.RETIRED}>Retired</option>
+                      </select>
+
                       <button
-                        className="px-3 py-2 rounded-md border"
+                        className={`${btnBase} ${btnInfo}`}
+                        onClick={() => issueType && reportIssue(a.id, issueType as AssetStatus)}
+                        disabled={!issueType || isBusy}
+                      >
+                        {isBusy ? "Sending…" : "Send"}
+                      </button>
+
+                      <button
+                        className={`${btnBase} ${btnGhost}`}
                         onClick={() => {
                           setIssueAssetId(null);
-                          setIssueText("");
+                          setIssueType("");
                         }}
+                        disabled={isBusy}
                       >
                         Cancel
                       </button>
@@ -178,9 +290,10 @@ const MyAssets: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => setIssueAssetId(a.id)}
-                      className="px-3 py-2 rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                      disabled={submittingId === a.id}
+                      className={`${btnBase} ${btnInfo}`}
+                      disabled={isBusy || isRetired}
                       title="Report a problem with this asset"
+                      aria-disabled={isBusy || isRetired}
                     >
                       Report Issue
                     </button>

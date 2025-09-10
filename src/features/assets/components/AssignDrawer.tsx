@@ -35,7 +35,7 @@ const AssignDrawer: React.FC<AssignDrawerProps> = ({
     }
   }, [open]);
 
-  // Açılınca assign edilebilir çalışanları yükle
+  
   useEffect(() => {
     if (!open) return;
     const fetchEmployees = async () => {

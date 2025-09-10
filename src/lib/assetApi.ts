@@ -1,8 +1,6 @@
-import api from "./axios";
+import client from "./axios";
 
-/* =========================
- * Enums
- * ========================= */
+// Lifecycle/status enums (must match backend)
 export enum AssetStatus {
   IN_STOCK = "IN_STOCK",
   ASSIGNED = "ASSIGNED",
@@ -16,168 +14,115 @@ export enum AssetStatus {
 export enum AssetCondition {
   NEW = "NEW",
   USED = "USED",
-  // Backend'de varsa açarsın:
-  // REFURBISHED = "REFURBISHED",
 }
 
-/* =========================
- * Response DTOs
- * ========================= */
-
-/** FULL DTO (manager/admin listeleri & aksiyon dönüşleri) */
-export interface AssetResponseDTO {
+export type AssetResponseDTO = {
   id: number;
   assetName: string;
   serialNumber?: string | null;
-  category?: string | null;
-  description?: string | null;
-
   status: AssetStatus;
   condition?: AssetCondition | null;
-
-  employeeId?: number | null;
   employeeName?: string | null;
-  managerId?: number | null;
-  companyId?: number | null;
-
-  assignedDate?: string | null; // ISO date (yyyy-mm-dd)
-  confirmed: boolean;
-
+  category?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
   location?: string | null;
-  createdAt: string;            // ISO datetime
-  updatedAt: string;            // ISO datetime
-}
 
-/** SLIM DTO (employee /assets/my için) */
-export interface EmployeeAssetResponseDTO {
+  // (opsiyonel) BE zenginleştirme ile gelebilir; UI guard için kullanılabilir
+  issueConfirmable?: boolean;
+};
+
+export type EmployeeAssetResponseDTO = {
   id: number;
   name: string;
-  description?: string | null;
-
   serialNumber?: string | null;
-  status: AssetStatus;
+  status: AssetStatus | string;
   confirmed: boolean;
-  assignedDate?: string | null; // ISO date
-}
+  assignedDate?: string | null;
+  category?: string | null;
+};
 
-export interface AssetEventResponseDTO {
-  id: number;
-  assetId: number;
-  type: string;
-  actorUserId?: number | null;
-  metadataJson?: string | null;
-  createdAt: string; // ISO datetime
-}
-
-export interface AssetMaintenanceResponseDTO {
-  id: number;
-  assetId: number;
-  vendorName?: string | null;
-  ticketNumber?: string | null;
-  status: string; // "OPEN" | "DONE"
-  notes?: string | null;
-  openedDate: string; // ISO date
-  closedDate?: string | null;
-}
-
-/* =========================
- * Request DTOs
- * ========================= */
-export interface AssetCreateRequestDTO {
+// Create/update payloads
+export type AssetCreateRequest = {
   assetName: string;
   serialNumber: string;
   category?: string | null;
   description?: string | null;
-  condition?: AssetCondition | null;
+  condition: AssetCondition;
   location?: string | null;
-}
-
-export interface AssetUpdateRequestDTO {
-  assetName?: string;
-  category?: string | null;
-  description?: string | null;
-  condition?: AssetCondition | null;
-  location?: string | null;
-}
-
-export interface AssetAssignRequestDTO {
-  employeeId: number;
-  note?: string | null;
-}
-
-export interface AssetChangeStatusRequestDTO {
-  status: AssetStatus;
-  note?: string | null;
-}
-
-export interface AssetConfirmRequestDTO {
-  note?: string | null;
-}
-
-export interface AssetReturnRequestDTO {
-  reason?: string | null;
-}
-
-export interface MaintenanceOpenRequestDTO {
-  vendorName?: string | null;
-  notes?: string | null;
-}
-
-export interface MaintenanceCloseRequestDTO {
-  notes?: string | null;
-  restoreToAssigned: boolean;
-}
-
-/* =========================
- * API
- * ========================= */
-export const assetApi = {
-  // ------- Manager endpoints -------
-  create: (body: AssetCreateRequestDTO) =>
-    api.post<AssetResponseDTO>("/assets", body).then((r) => r.data),
-
-  update: (id: number, body: AssetUpdateRequestDTO) =>
-    api.put<AssetResponseDTO>(`/assets/${id}`, body).then((r) => r.data),
-
-  list: (status?: AssetStatus) =>
-    api.get<AssetResponseDTO[]>("/assets", { params: { status } }).then((r) => r.data),
-
-  assign: (id: number, body: AssetAssignRequestDTO) =>
-    api.post<AssetResponseDTO>(`/assets/${id}/assign`, body).then((r) => r.data),
-
-  changeStatus: (id: number, body: AssetChangeStatusRequestDTO) =>
-    api.post<AssetResponseDTO>(`/assets/${id}/status`, body).then((r) => r.data),
-
-  approveReturn: (id: number) =>
-    api.post<AssetResponseDTO>(`/assets/${id}/approve-return`, {}).then((r) => r.data),
-
-  openMaintenance: (id: number, body: MaintenanceOpenRequestDTO) =>
-    api.post<AssetMaintenanceResponseDTO>(`/assets/${id}/maintenance`, body).then((r) => r.data),
-
-  // ------- Employee endpoints -------
-  myAssets: () =>
-    api.get<EmployeeAssetResponseDTO[]>("/assets/my").then((r) => r.data),
-
-  confirm: (id: number, body: AssetConfirmRequestDTO) =>
-    api.post<AssetResponseDTO>(`/assets/${id}/confirm`, body).then((r) => r.data),
-
-  requestReturn: (id: number, body: AssetReturnRequestDTO) =>
-    api.post<AssetResponseDTO>(`/assets/${id}/request-return`, body).then((r) => r.data),
-
-  reportIssue: (id: number, body: { issueType: string; description?: string | null }) =>
-    api.post<AssetResponseDTO>(`/assets/${id}/report-issue`, body).then((r) => r.data),
-
-  // ------- Common -------
-  events: (id: number) =>
-    api.get<AssetEventResponseDTO[]>(`/assets/${id}/events`).then((r) => r.data),
 };
 
-/* =========================
- * React Query keys (opsiyonel)
- * ========================= */
-export const assetKeys = {
-  all: ["assets"] as const,
-  list: (status?: AssetStatus) => [...assetKeys.all, "list", status] as const,
-  my: () => [...assetKeys.all, "my"] as const,
-  events: (id: number) => [...assetKeys.all, "events", id] as const,
+export type AssetConfirmRequestDTO = Record<string, never>;
+export type AssetReturnRequestDTO = { reason: string };
+export type AssetChangeStatusRequestDTO = { status: AssetStatus; note?: string };
+
+// NOTE: FE → BE minimal payload (issueType = target status)
+export type AssetIssueReportRequestDTO = { issueType: AssetStatus };
+
+export const assetApi = {
+  // ---------- Manager ----------
+  list: async (status?: AssetStatus): Promise<AssetResponseDTO[]> => {
+    const q = status ? `?status=${status}` : "";
+    const { data } = await client.get(`/assets${q}`);
+    return data;
+  },
+
+  create: async (payload: AssetCreateRequest): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets`, payload);
+    return data;
+  },
+
+  update: async (id: number, payload: Partial<AssetCreateRequest>): Promise<AssetResponseDTO> => {
+    const { data } = await client.put(`/assets/${id}`, payload);
+    return data;
+  },
+
+  assign: async (id: number, payload: { employeeId: number; note?: string }): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/assign`, payload);
+    return data;
+  },
+
+  approveReturn: async (id: number): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/approve-return`);
+    return data;
+  },
+
+  changeStatus: async (id: number, req: AssetChangeStatusRequestDTO): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/status`, req);
+    return data;
+  },
+
+  // ---------- Employee ----------
+  myAssets: async (): Promise<EmployeeAssetResponseDTO[]> => {
+    const { data } = await client.get(`/assets/my`);
+    return data;
+  },
+
+  confirm: async (id: number, req: AssetConfirmRequestDTO = {}): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/confirm`, req);
+    return data;
+  },
+
+  requestReturn: async (id: number, req: AssetReturnRequestDTO): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/request-return`, req);
+    return data;
+  },
+
+  // NEW: Undo return request
+  cancelReturnRequest: async (id: number): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/cancel-return-request`);
+    return data;
+  },
+
+  // Report Issue (MAINTENANCE / LOST / RETIRED)
+  reportIssue: async (id: number, req: AssetIssueReportRequestDTO): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/report-issue`, req);
+    return data;
+  },
+
+  // NEW: Undo issue report (BE kuralı: MAINTENANCE & LOST için; RETIRED asla)
+  cancelIssueReport: async (id: number): Promise<AssetResponseDTO> => {
+    const { data } = await client.post(`/assets/${id}/cancel-issue-report`);
+    return data;
+  },
 };

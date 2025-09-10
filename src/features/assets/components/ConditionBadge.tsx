@@ -2,7 +2,7 @@ import React from "react";
 import { AssetCondition } from "../../../lib/assetApi";
 
 type Props = {
-  condition?: AssetCondition | null;  // <- nullable kabul et
+  condition?: AssetCondition | null;
   className?: string;
 };
 
@@ -17,7 +17,7 @@ const COLORS: Record<AssetCondition, string> = {
 };
 
 export const ConditionBadge: React.FC<Props> = ({ condition, className }) => {
-  // Backend bazen null/undefined gönderebilir → “-” göster
+  // Show dash if null/undefined
   if (!condition) {
     return (
       <span
@@ -36,5 +36,3 @@ export const ConditionBadge: React.FC<Props> = ({ condition, className }) => {
     </span>
   );
 };
-
-export default ConditionBadge;
