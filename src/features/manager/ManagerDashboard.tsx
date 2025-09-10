@@ -28,7 +28,7 @@ export default function ManagerDashboard() {
     let alive = true;
     (async () => {
       try {
-        const res = await axios.get<ManagerOverview>("/api/manager/overview")
+        const res = await axios.get<ManagerOverview>("/manager/overview")
           .catch(() => ({
             data: {
               teamSize: 18,

@@ -1,7 +1,7 @@
 import axios from "./axios";
 import { Employee, EmployeeCreateRequest } from "../types/Employee";
 
-// Fetch all employees
+// Fetch all employees (scoped to manager's company)
 export const getAllEmployees = async (): Promise<Employee[]> => {
   const response = await axios.get("/employees");
   return response.data;
@@ -53,5 +53,19 @@ export const rejectEmployee = async (id: number): Promise<void> => {
 // Toggle employee status (active/inactive)
 export const toggleEmployeeStatus = async (id: number): Promise<Employee> => {
   const response = await axios.patch(`/employees/${id}/toggle-active`);
+  return response.data;
+};
+
+// ---------------- ADDED ----------------
+// Fetch assignable employees (for asset assignment).
+// Calls backend `/employees/assignable` endpoint and returns EmployeeLite[]
+export interface EmployeeLite {
+  id: number;
+  display: string;
+  email: string;
+}
+
+export const getAssignableEmployees = async (): Promise<EmployeeLite[]> => {
+  const response = await axios.get("/employees/assignable");
   return response.data;
 };

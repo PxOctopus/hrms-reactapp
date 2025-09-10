@@ -33,6 +33,10 @@ import ReviewsPage from "../features/reviews/ReviewsPage";
 import ShiftManagement from "../features/shifts/ShiftManagement";
 import MyShifts from "../features/shifts/MyShifts";
 
+// Assets
+import MyAssets from "../features/employee/MyAssets";
+import ManagerAssetList from "../features/assets/pages/ManagerAssetList";
+
 // Admin
 import PendingManagerList from "../features/admin/PendingManagerList";
 import AdminPendingReviews from "../features/admin/AdminPendingReviews";
@@ -63,14 +67,13 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* PUBLIC: Landing page.
-            If already authenticated, send users directly to their dashboard. */}
+        {/* PUBLIC: Landing page. If already authenticated, go to dashboard */}
         <Route
           path="/"
           element={user ? <Navigate to="/dashboard" replace /> : <PeopleaLanding />}
         />
 
-        {/* PUBLIC: Auth pages (redirect to dashboard if already logged in) */}
+        {/* PUBLIC: Auth */}
         <Route
           path="/login"
           element={user ? <Navigate to="/dashboard" replace /> : <Login />}
@@ -83,7 +86,7 @@ export default function AppRouter() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* SEMI-PROTECTED: Set password requires auth but no strict role */}
+        {/* SEMI-PROTECTED: Set password */}
         <Route
           path="/set-password"
           element={
@@ -93,7 +96,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* PUBLIC: Reviews listing; writing a review is restricted to MANAGER */}
+        {/* PUBLIC: Reviews listing; writing is restricted */}
         <Route path="/reviews" element={<ReviewsPage />} />
         <Route
           path="/reviews/write"
@@ -188,22 +191,53 @@ export default function AppRouter() {
           />
 
           {/* Shifts */}
-<Route
-  path="/shifts"
-  element={
-    <ProtectedRoute roles={["MANAGER"]}>
-      <ShiftManagement />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/my-shifts"
-  element={
-    <ProtectedRoute roles={["EMPLOYEE"]}>
-      <MyShifts />
-    </ProtectedRoute>
-  }
-/>
+          <Route
+            path="/shifts"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <ShiftManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-shifts"
+            element={
+              <ProtectedRoute roles={["EMPLOYEE"]}>
+                <MyShifts />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Assets */}
+          {/* ADDED: role-based redirect for /assets to avoid 404/bookmarks */}
+          <Route
+            path="/assets"
+            element={
+              <ProtectedRoute roles={["MANAGER", "EMPLOYEE"]}>
+                {user?.role === "MANAGER" ? (
+                  <Navigate to="/manager/assets" replace />
+                ) : (
+                  <Navigate to="/my-assets" replace />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/assets"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <ManagerAssetList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-assets"
+            element={
+              <ProtectedRoute roles={["EMPLOYEE"]}>
+                <MyAssets />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin */}
           <Route
@@ -222,7 +256,10 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
-          <Route path="/admin" element={<Navigate to="/admin/pending-reviews" replace />} />
+          <Route
+            path="/admin"
+            element={<Navigate to="/admin/pending-reviews" replace />}
+          />
         </Route>
 
         {/* Legacy redirects */}

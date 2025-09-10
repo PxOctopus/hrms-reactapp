@@ -79,7 +79,7 @@ export const MENU: MenuItem[] = [
 
   // Shifts: key is important, Shell will override path based on role
   {
-    key: "shifts", // ✅ used in Shell to redirect MANAGER -> /shifts, EMPLOYEE -> /my-shifts
+    key: "shifts", // used in Shell to redirect MANAGER -> /shifts, EMPLOYEE -> /my-shifts
     label: "Shifts",
     path: "/shifts", // default path (managers); employees will be redirected in Shell
     icon: CalendarClock,
@@ -87,11 +87,18 @@ export const MENU: MenuItem[] = [
   },
 
   {
-    key: "assets",
+    key: "manager-assets",
     label: "Assets",
-    path: "/assets",
+    path: "/manager/assets",
     icon: Package,
-    roles: ["MANAGER", "EMPLOYEE"],
+    roles: ["MANAGER"],
+  },
+  {
+    key: "employee-assets",
+    label: "Assets",
+    path: "/my-assets",
+    icon: Package,
+    roles: ["EMPLOYEE"],
   },
 
   {
