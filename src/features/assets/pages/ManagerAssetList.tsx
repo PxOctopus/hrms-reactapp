@@ -1,9 +1,10 @@
-// src/features/asset/pages/ManagerAssetList.tsx
+// src/features/assets/pages/ManagerAssetList.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { assetApi, type AssetResponseDTO, AssetStatus } from "../../../lib/assetApi";
 import AssetTable from "../components/AssetTable";
 import Pagination from "../components/Pagination";
 import CreateAssetDrawer from "../components/CreateAssetDrawer";
+import EditAssetDrawer from "../components/EditAssetDrawer";
 import AssignDrawer from "../components/AssignDrawer";
 
 const PAGE_SIZE = 10;
@@ -22,6 +23,7 @@ type SortableKeys =
 const ManagerAssetList: React.FC = () => {
   const [raw, setRaw] = useState<AssetResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
+
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<AssetStatus | "">("");
   const [sortKey, setSortKey] = useState<SortableKeys>("createdAt");
@@ -32,7 +34,9 @@ const ManagerAssetList: React.FC = () => {
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignId, setAssignId] = useState<number | null>(null);
 
-  // FETCH: keep status filter in deps so list refreshes when dropdown changes
+  const [editOpen, setEditOpen] = useState(false);
+  const [editAsset, setEditAsset] = useState<AssetResponseDTO | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -43,9 +47,10 @@ const ManagerAssetList: React.FC = () => {
     }
   }, [status]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  // Text filter against multiple fields
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return raw;
@@ -58,7 +63,6 @@ const ManagerAssetList: React.FC = () => {
     );
   }, [raw, query]);
 
-  // Generic normalizer for sorting
   const norm = (val: unknown) => {
     if (val == null) return "";
     if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val)) {
@@ -70,7 +74,6 @@ const ManagerAssetList: React.FC = () => {
     return String(val).toLowerCase();
   };
 
-  // Sort current filtered set
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((x, y) => {
@@ -82,14 +85,12 @@ const ManagerAssetList: React.FC = () => {
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  // Pagination calc
   const total = sorted.length;
   const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageSafe = Math.min(page, maxPage);
-  const start = (pageSafe - 1) * PAGE_SIZE;
+  const start = (pageSafe - 1) * PAGE_SIZE;           // <-- start index for row numbers
   const paged = sorted.slice(start, start + PAGE_SIZE);
 
-  // Sort toggler
   const handleSort = (key: SortableKeys) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -98,7 +99,6 @@ const ManagerAssetList: React.FC = () => {
     }
   };
 
-  // Reset all filters
   const resetFilters = () => {
     setQuery("");
     setStatus("");
@@ -110,32 +110,38 @@ const ManagerAssetList: React.FC = () => {
     void load();
   };
 
-  // ACTIONS: Manager ops wired to backend rules
   const handleConfirmReturn = async (assetId: number) => {
-    // Manager approves return → IN_STOCK (controller maps to changeStatus)
     await assetApi.approveReturn(assetId);
     await load();
   };
 
-  const handleConfirmIssue = async (assetId: number, status: AssetStatus) => {
-    // Manager confirms MAINTENANCE/LOST/RETIRED → same status, only an audit event is recorded
-    await assetApi.changeStatus(assetId, { status, note: "Issue confirmed" });
-    await load();
-  };
-
   const handleMarkInStock = async (assetId: number) => {
-    // Mark back to stock allowed for LOST/MAINTENANCE (and RETURN_REQUESTED via approveReturn)
-    await assetApi.changeStatus(assetId, { status: AssetStatus.IN_STOCK, note: "Manager set to IN_STOCK" });
+    await assetApi.changeStatus(assetId, {
+      status: AssetStatus.IN_STOCK,
+      note: "Manager set to IN_STOCK",
+    });
     await load();
   };
 
-  // Keep pagination stable when inputs change
-  useEffect(() => { setPage(1); }, [query, status, sortKey, sortDir]);
+  const openEdit = (asset: AssetResponseDTO) => {
+    setEditAsset(asset);
+    setEditOpen(true);
+  };
+
+  const archive = async (assetId: number) => {
+    if (!window.confirm("Archive this asset? It will be hidden from lists but preserved in history.")) return;
+    await assetApi.archive(assetId);
+    await load();
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, status, sortKey, sortDir]);
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>
+        <h1 className="text-xl font-semibold">Assets</h1>
         <div className="flex gap-2">
           <input
             placeholder="Search name/serial/employee…"
@@ -150,22 +156,19 @@ const ManagerAssetList: React.FC = () => {
           >
             <option value="">All statuses</option>
             {Object.values(AssetStatus).map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
 
-          {/* Peoplea primary button */}
-          <button className="px-3 py-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  onClick={() => setOpenCreate(true)}>
+          <button className="px-3 py-2 rounded-lg bg-indigo-600 text-white" onClick={() => setOpenCreate(true)}>
             + New Asset
           </button>
-
-          <button className="px-3 py-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300"
-                  onClick={() => void load()} disabled={loading}>
+          <button className="px-3 py-2 rounded-lg border" onClick={() => void load()} disabled={loading}>
             Refresh
           </button>
-          <button className="px-3 py-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300"
-                  onClick={resetFilters}>
+          <button className="px-3 py-2 rounded-lg border" onClick={resetFilters}>
             Reset
           </button>
         </div>
@@ -177,10 +180,19 @@ const ManagerAssetList: React.FC = () => {
         sortKey={sortKey as keyof AssetResponseDTO}
         sortDir={sortDir}
         onSort={(k) => handleSort(k as SortableKeys)}
-        onAssignClick={(id) => { setAssignId(id); setAssignOpen(true); }}
+        onAssignClick={(id) => {
+          setAssignId(id);
+          setAssignOpen(true);
+        }}
         onConfirmReturn={handleConfirmReturn}
-        onConfirmIssue={handleConfirmIssue}
         onMarkInStock={handleMarkInStock}
+        onEdit={openEdit}
+        onArchive={archive}
+        onConfirmIssue={async (id, s) => {
+          await assetApi.changeStatus(id, { status: s, note: "Issue confirmed" });
+          await load();
+        }}
+        startIndex={start}          // <-- pass start index for row numbering
       />
 
       <Pagination page={pageSafe} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
@@ -202,6 +214,13 @@ const ManagerAssetList: React.FC = () => {
           setAssignId(null);
         }}
         onAssigned={() => void load()}
+      />
+
+      <EditAssetDrawer
+        open={editOpen}
+        asset={editAsset}
+        onClose={() => setEditOpen(false)}
+        onUpdated={() => void load()}
       />
     </div>
   );

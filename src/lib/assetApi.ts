@@ -1,3 +1,4 @@
+// src/lib/assetApi.ts
 import client from "./axios";
 
 // Lifecycle/status enums (must match backend)
@@ -28,7 +29,7 @@ export type AssetResponseDTO = {
   createdAt?: string | null;
   location?: string | null;
 
-  // (opsiyonel) BE zenginleştirme ile gelebilir; UI guard için kullanılabilir
+  // (optional) may be provided by BE enrichment; used as a UI guard
   issueConfirmable?: boolean;
 };
 
@@ -56,7 +57,7 @@ export type AssetConfirmRequestDTO = Record<string, never>;
 export type AssetReturnRequestDTO = { reason: string };
 export type AssetChangeStatusRequestDTO = { status: AssetStatus; note?: string };
 
-// NOTE: FE → BE minimal payload (issueType = target status)
+// FE → BE minimal payload (issueType = target status)
 export type AssetIssueReportRequestDTO = { issueType: AssetStatus };
 
 export const assetApi = {
@@ -92,6 +93,11 @@ export const assetApi = {
     return data;
   },
 
+  // NEW: archive (soft delete) — backend returns 204 No Content
+  archive: async (id: number): Promise<void> => {
+    await client.post(`/assets/${id}/archive`);
+  },
+
   // ---------- Employee ----------
   myAssets: async (): Promise<EmployeeAssetResponseDTO[]> => {
     const { data } = await client.get(`/assets/my`);
@@ -108,7 +114,7 @@ export const assetApi = {
     return data;
   },
 
-  // NEW: Undo return request
+  // Undo return request
   cancelReturnRequest: async (id: number): Promise<AssetResponseDTO> => {
     const { data } = await client.post(`/assets/${id}/cancel-return-request`);
     return data;
@@ -120,7 +126,7 @@ export const assetApi = {
     return data;
   },
 
-  // NEW: Undo issue report (BE kuralı: MAINTENANCE & LOST için; RETIRED asla)
+  // Undo issue report (BE rule: allowed for MAINTENANCE & LOST; never for RETIRED)
   cancelIssueReport: async (id: number): Promise<AssetResponseDTO> => {
     const { data } = await client.post(`/assets/${id}/cancel-issue-report`);
     return data;

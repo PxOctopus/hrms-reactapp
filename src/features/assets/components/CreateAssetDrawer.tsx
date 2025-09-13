@@ -1,11 +1,8 @@
-import React, { useState } from "react";
+// src/features/asset/components/CreateAssetDrawer.tsx
+import React, { useState, useEffect } from "react";
 import { assetApi, AssetCondition } from "../../../lib/assetApi";
 
-type Props = {
-  open: boolean;
-  onClose: () => void;
-  onCreated: () => void; // refresh list after create
-};
+type Props = { open: boolean; onClose: () => void; onCreated: () => void; };
 
 const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
   const [assetName, setAssetName] = useState("");
@@ -13,9 +10,23 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [condition, setCondition] = useState<AssetCondition>(AssetCondition.NEW); // default NEW
+  const [condition, setCondition] = useState<AssetCondition>(AssetCondition.NEW);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // NEW: clear fields every time the drawer opens
+  useEffect(() => {
+    if (open) {
+      setAssetName("");
+      setSerialNumber("");
+      setCategory("");
+      setDescription("");
+      setLocation("");
+      setCondition(AssetCondition.NEW);
+      setErr(null);
+      setSaving(false);
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -28,14 +39,25 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
         serialNumber: serialNumber.trim(),
         category: category.trim() || null,
         description: description.trim() || null,
-        condition, // NEW or USED
+        condition,
         location: location.trim() || null,
       });
       onCreated();
       onClose();
     } catch (e: any) {
       console.error(e);
-      setErr(e?.response?.data?.message || "Failed to create asset");
+      const status = e?.response?.status;
+      const raw = e?.response?.data?.message || e?.response?.data?.error || "";
+      const looksLikeDuplicate = status === 409 || /duplicate|unique|seri|serial/i.test(raw);
+
+      // NEW: manager-focused hint about archived items
+      if (looksLikeDuplicate) {
+        setErr(
+          "Bu seri numarası sistemde zaten kayıtlı. Eklemek istediğiniz ürün 'Archive' altında olabilir; lütfen arşiv/depo kayıtlarını ve seri numarasını kontrol edin."
+        );
+      } else {
+        setErr(raw || "Failed to create asset.");
+      }
     } finally {
       setSaving(false);
     }
@@ -46,9 +68,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl p-5 overflow-y-auto">
         <div className="flex items-center justify-between">
           <div className="text-lg font-semibold">New Asset</div>
-          <button className="rounded-md border px-3 py-1" onClick={onClose} disabled={saving}>
-            Close
-          </button>
+          <button className="rounded-md border px-3 py-1" onClick={onClose} disabled={saving}>Close</button>
         </div>
 
         {err && (
@@ -87,7 +107,6 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
             >
               <option value={AssetCondition.NEW}>New</option>
               <option value={AssetCondition.USED}>Used</option>
-              {/* Damaged yok: issue/maintenance akışı ile yönetilecek */}
             </select>
           </label>
 

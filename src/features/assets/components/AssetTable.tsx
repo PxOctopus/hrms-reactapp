@@ -10,14 +10,20 @@ type Props = {
   sortDir?: "asc" | "desc";
   onSort?: (key: keyof AssetResponseDTO) => void;
 
-  // Actions
+  // Row actions
   onAssignClick?: (assetId: number) => void;
   onConfirmReturn?: (assetId: number) => void;
   onConfirmIssue?: (assetId: number, status: AssetStatus) => void;
   onMarkInStock?: (assetId: number) => void;
+
+  // Row-leading icons
+  onEdit?: (asset: AssetResponseDTO) => void;
+  onArchive?: (assetId: number) => void;
+
+  // NEW: for row numbering across pages
+  startIndex?: number;
 };
 
-// Row pastel backgrounds
 const rowBg: Partial<Record<AssetStatus, string>> = {
   IN_STOCK: "bg-white",
   ASSIGNED: "bg-yellow-50",
@@ -56,11 +62,12 @@ const Th: React.FC<{
   );
 };
 
-// Peoplea-ish ghost buttons
 const btnBase =
-  "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed";
-const btnGhost =
-  "border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 focus:ring-gray-300";
+  "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1";
+const btnGhost = "border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 focus-visible:ring-gray-300";
+
+const iconBtn =
+  "h-9 w-9 inline-flex items-center justify-center rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300";
 
 const AssetTable: React.FC<Props> = ({
   data,
@@ -72,26 +79,28 @@ const AssetTable: React.FC<Props> = ({
   onConfirmReturn,
   onConfirmIssue,
   onMarkInStock,
+  onEdit,
+  onArchive,
+  startIndex = 0,
 }) => {
-  // visibility helpers
   const isReturnReq = (s: AssetStatus) => s === AssetStatus.RETURN_REQUESTED;
   const isIssueState = (s: AssetStatus) =>
     s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST || s === AssetStatus.RETIRED;
-  const isMarkableToStock = (s: AssetStatus) => s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST;
-  const isAssignable = (s: AssetStatus) => s === AssetStatus.IN_STOCK;
+  const canMarkInStock = (s: AssetStatus) => s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST;
+  const canAssign = (s: AssetStatus) => s === AssetStatus.IN_STOCK;
 
   return (
     <div className="overflow-x-auto border rounded-xl">
       <table className="min-w-full text-sm">
         <thead className="bg-gray-100">
           <tr>
-            <Th label="#" col="id" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            <Th label="" align="left" />
+            <Th label="#" /> {/* row number (not sortable) */}
             <Th label="Category" col="category" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Name" col="assetName" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Serial" col="serialNumber" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="State" col="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Assigned To" col="employeeName" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-            {/* Actions BEFORE Updated; centered */}
             <Th label="Actions" align="center" />
             <Th label="Updated" col="updatedAt" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
           </tr>
@@ -100,19 +109,19 @@ const AssetTable: React.FC<Props> = ({
         <tbody>
           {loading ? (
             <tr>
-              <td className="px-4 py-6 text-center" colSpan={8}>
+              <td className="px-4 py-6 text-center" colSpan={9}>
                 Loading…
               </td>
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td className="px-4 py-6 text-center" colSpan={8}>
+              <td className="px-4 py-6 text-center" colSpan={9}>
                 No assets
               </td>
             </tr>
           ) : (
-            data.map((a) => {
-              // Optional BE flag for single-confirm UX
+            data.map((a, idx) => {
+              const rowNo = startIndex + idx + 1;
               const issueConfirmable =
                 (a as any).issueConfirmable !== undefined
                   ? Boolean((a as any).issueConfirmable)
@@ -123,26 +132,61 @@ const AssetTable: React.FC<Props> = ({
                   key={a.id}
                   className={`border-t ${rowBg[a.status] ?? "bg-white"} hover:bg-gray-100/60 transition-colors`}
                 >
-                  <td className="px-4 py-2">{a.id}</td>
+                  {/* Leading icons: Edit + Archive */}
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className={iconBtn}
+                        title="Edit"
+                        onClick={(e) => {
+                          (e.currentTarget as HTMLButtonElement).blur();
+                          onEdit?.(a);
+                        }}
+                        aria-label="Edit asset"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M16.862 3.487a2.1 2.1 0 1 1 2.97 2.97L8.44 17.85l-4.24 1.27 1.27-4.24L16.862 3.487z" />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={iconBtn}
+                        title="Archive"
+                        onClick={(e) => {
+                          (e.currentTarget as HTMLButtonElement).blur();
+                          onArchive?.(a.id);
+                        }}
+                        aria-label="Archive asset"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 7h18" />
+                          <path d="M7 7V4h10v3" />
+                          <path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7" />
+                          <path d="M10 11h4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-2">{rowNo}</td>
                   <td className="px-4 py-2">{a.category ?? "-"}</td>
                   <td className="px-4 py-2">{a.assetName}</td>
                   <td className="px-4 py-2">{a.serialNumber ?? "-"}</td>
 
-                  {/* State (Status + Condition) */}
                   <td className="px-4 py-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={a.status} className="cursor-default" />
                       <span className="text-gray-300">•</span>
-                      <ConditionBadge condition={a.condition as AssetCondition | null} className="cursor-default" />
+                      <ConditionBadge condition={a.condition as AssetCondition} className="cursor-default" />
                     </div>
                   </td>
 
                   <td className="px-4 py-2">{a.employeeName ?? "-"}</td>
 
-                  {/* Contextual actions */}
                   <td className="px-4 py-2">
                     <div className="flex justify-center items-center gap-2">
-                      {/* RETURN_REQUESTED → Approve Return */}
                       {isReturnReq(a.status) && (
                         <button
                           onClick={() => onConfirmReturn?.(a.id)}
@@ -153,35 +197,34 @@ const AssetTable: React.FC<Props> = ({
                         </button>
                       )}
 
-                      {/* MAINTENANCE/LOST/RETIRED → Confirm Issue */}
                       {isIssueState(a.status) && (
-                        <button
-                          onClick={() => issueConfirmable && onConfirmIssue?.(a.id, a.status)}
-                          disabled={!issueConfirmable}
-                          className={`${btnBase} ${btnGhost}`}
-                          title={issueConfirmable ? "Confirm reported issue" : "Already confirmed"}
-                        >
-                          Confirm Issue
-                        </button>
+                        <>
+                          <button
+                            onClick={() => issueConfirmable && onConfirmIssue?.(a.id, a.status)}
+                            disabled={!issueConfirmable}
+                            className={`${btnBase} ${btnGhost}`}
+                            title={issueConfirmable ? "Confirm reported issue" : "Already confirmed"}
+                          >
+                            Confirm Issue
+                          </button>
+
+                          {canMarkInStock(a.status) && (
+                            <button
+                              onClick={() => onMarkInStock?.(a.id)}
+                              className={`${btnBase} ${btnGhost}`}
+                              title="Mark as IN_STOCK"
+                            >
+                              Mark In Stock
+                            </button>
+                          )}
+                        </>
                       )}
 
-                      {/* ONLY MAINTENANCE/LOST → Mark In Stock (render ONLY here) */}
-                      {isMarkableToStock(a.status) && (
-                        <button
-                          onClick={() => onMarkInStock?.(a.id)}
-                          className={`${btnBase} ${btnGhost}`}
-                          title="Mark as IN_STOCK"
-                        >
-                          Mark In Stock
-                        </button>
-                      )}
-
-                      {/* ONLY IN_STOCK → Assign (render ONLY here) */}
-                      {isAssignable(a.status) && (
+                      {canAssign(a.status) && (
                         <button
                           onClick={() => onAssignClick?.(a.id)}
                           className={`${btnBase} ${btnGhost}`}
-                          title="Assign"
+                          title="Assign this asset"
                         >
                           Assign
                         </button>
