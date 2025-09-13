@@ -47,9 +47,7 @@ const ManagerAssetList: React.FC = () => {
     }
   }, [status]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -88,15 +86,12 @@ const ManagerAssetList: React.FC = () => {
   const total = sorted.length;
   const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageSafe = Math.min(page, maxPage);
-  const start = (pageSafe - 1) * PAGE_SIZE;           // <-- start index for row numbers
+  const start = (pageSafe - 1) * PAGE_SIZE;
   const paged = sorted.slice(start, start + PAGE_SIZE);
 
   const handleSort = (key: SortableKeys) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
+    else { setSortKey(key); setSortDir("asc"); }
   };
 
   const resetFilters = () => {
@@ -116,10 +111,12 @@ const ManagerAssetList: React.FC = () => {
   };
 
   const handleMarkInStock = async (assetId: number) => {
-    await assetApi.changeStatus(assetId, {
-      status: AssetStatus.IN_STOCK,
-      note: "Manager set to IN_STOCK",
-    });
+    await assetApi.changeStatus(assetId, { status: AssetStatus.IN_STOCK, note: "Manager set to IN_STOCK" });
+    await load();
+  };
+
+  const handleApproveRetirement = async (assetId: number) => {
+    await assetApi.changeStatus(assetId, { status: AssetStatus.RETIRED, note: "Retirement approved" });
     await load();
   };
 
@@ -134,9 +131,7 @@ const ManagerAssetList: React.FC = () => {
     await load();
   };
 
-  useEffect(() => {
-    setPage(1);
-  }, [query, status, sortKey, sortDir]);
+  useEffect(() => { setPage(1); }, [query, status, sortKey, sortDir]);
 
   return (
     <div className="p-6 space-y-4">
@@ -156,9 +151,7 @@ const ManagerAssetList: React.FC = () => {
           >
             <option value="">All statuses</option>
             {Object.values(AssetStatus).map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
 
@@ -180,19 +173,17 @@ const ManagerAssetList: React.FC = () => {
         sortKey={sortKey as keyof AssetResponseDTO}
         sortDir={sortDir}
         onSort={(k) => handleSort(k as SortableKeys)}
-        onAssignClick={(id) => {
-          setAssignId(id);
-          setAssignOpen(true);
-        }}
+        onAssignClick={(id) => { setAssignId(id); setAssignOpen(true); }}
         onConfirmReturn={handleConfirmReturn}
         onMarkInStock={handleMarkInStock}
+        onApproveRetirement={handleApproveRetirement}  // NEW
         onEdit={openEdit}
         onArchive={archive}
         onConfirmIssue={async (id, s) => {
           await assetApi.changeStatus(id, { status: s, note: "Issue confirmed" });
           await load();
         }}
-        startIndex={start}          // <-- pass start index for row numbering
+        startIndex={start}
       />
 
       <Pagination page={pageSafe} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
@@ -200,19 +191,13 @@ const ManagerAssetList: React.FC = () => {
       <CreateAssetDrawer
         open={openCreate}
         onClose={() => setOpenCreate(false)}
-        onCreated={() => {
-          setOpenCreate(false);
-          void load();
-        }}
+        onCreated={() => { setOpenCreate(false); void load(); }}
       />
 
       <AssignDrawer
         open={assignOpen}
         assetId={assignId}
-        onClose={() => {
-          setAssignOpen(false);
-          setAssignId(null);
-        }}
+        onClose={() => { setAssignOpen(false); setAssignId(null); }}
         onAssigned={() => void load()}
       />
 

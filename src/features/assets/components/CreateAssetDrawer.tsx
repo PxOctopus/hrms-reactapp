@@ -1,4 +1,3 @@
-// src/features/asset/components/CreateAssetDrawer.tsx
 import React, { useState, useEffect } from "react";
 import { assetApi, AssetCondition } from "../../../lib/assetApi";
 
@@ -14,7 +13,7 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // NEW: clear fields every time the drawer opens
+  // Clear fields when opening
   useEffect(() => {
     if (open) {
       setAssetName("");
@@ -50,10 +49,9 @@ const CreateAssetDrawer: React.FC<Props> = ({ open, onClose, onCreated }) => {
       const raw = e?.response?.data?.message || e?.response?.data?.error || "";
       const looksLikeDuplicate = status === 409 || /duplicate|unique|seri|serial/i.test(raw);
 
-      // NEW: manager-focused hint about archived items
       if (looksLikeDuplicate) {
         setErr(
-          "Bu seri numarası sistemde zaten kayıtlı. Eklemek istediğiniz ürün 'Archive' altında olabilir; lütfen arşiv/depo kayıtlarını ve seri numarasını kontrol edin."
+          "This serial number already exists. The item might be in Archive; please check your archived/warehouse records and verify the serial number."
         );
       } else {
         setErr(raw || "Failed to create asset.");

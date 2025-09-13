@@ -1,5 +1,4 @@
-// src/features/asset/components/EditAssetDrawer.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { assetApi, AssetCondition, type AssetResponseDTO, type AssetCreateRequest } from "../../../lib/assetApi";
 
 const btnBase =
@@ -22,6 +21,7 @@ const EditAssetDrawer: React.FC<Props> = ({ open, asset, onClose, onUpdated }) =
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && asset) {
@@ -29,18 +29,33 @@ const EditAssetDrawer: React.FC<Props> = ({ open, asset, onClose, onUpdated }) =
       setSerialNumber(asset.serialNumber ?? "");
       setCondition((asset.condition as AssetCondition) ?? AssetCondition.NEW);
       setCategory(asset.category ?? "");
-      setDescription((asset as any).description ?? "");
+      setDescription((asset as any).description ?? ""); // Description DTO’da yoksa mapper’a eklenebilir
       setLocation(asset.location ?? "");
+      setErr(null);
+      setSaving(false);
     }
     if (!open) setSaving(false);
   }, [open, asset]);
+
+  const canSave = useMemo(() => {
+    if (!asset) return false;
+    const requiredOk = assetName.trim().length > 0 && serialNumber.trim().length > 0;
+    const changed =
+      assetName !== (asset.assetName ?? "") ||
+      serialNumber !== (asset.serialNumber ?? "") ||
+      condition !== (asset.condition as AssetCondition) ||
+      (category || "") !== (asset.category ?? "") ||
+      (description || "") !== ((asset as any).description ?? "") ||
+      (location || "") !== (asset.location ?? "");
+    return requiredOk && changed && !saving;
+  }, [asset, assetName, serialNumber, condition, category, description, location, saving]);
 
   if (!open || !asset) return null;
 
   const onSave = async () => {
     const payload: Partial<AssetCreateRequest> = {
-      assetName,
-      serialNumber, // EDITABLE now
+      assetName: assetName.trim(),
+      serialNumber: serialNumber.trim(), // EDITABLE
       condition,
       category: category.trim() || null,
       description: description.trim() || null,
@@ -48,10 +63,23 @@ const EditAssetDrawer: React.FC<Props> = ({ open, asset, onClose, onUpdated }) =
     };
 
     setSaving(true);
+    setErr(null);
     try {
       await assetApi.update(asset.id, payload);
       onUpdated();
       onClose();
+    } catch (e: any) {
+      console.error(e);
+      const status = e?.response?.status;
+      const raw = e?.response?.data?.message || e?.response?.data?.error || "";
+      const looksLikeDuplicate = status === 409 || /duplicate|unique|seri|serial/i.test(raw);
+      if (looksLikeDuplicate) {
+        setErr(
+          "This serial number already exists. The item might be in Archive; please check your archived/warehouse records and verify the serial number."
+        );
+      } else {
+        setErr(raw || "Failed to update asset.");
+      }
     } finally {
       setSaving(false);
     }
@@ -64,6 +92,12 @@ const EditAssetDrawer: React.FC<Props> = ({ open, asset, onClose, onUpdated }) =
           <h2 className="text-xl font-semibold">Update Asset</h2>
           <button className={`${btnBase} ${btnGhost}`} onClick={onClose} disabled={saving}>Close</button>
         </div>
+
+        {err && (
+          <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {err}
+          </div>
+        )}
 
         <label className="mt-6 block text-sm font-medium">
           Name
@@ -137,7 +171,7 @@ const EditAssetDrawer: React.FC<Props> = ({ open, asset, onClose, onUpdated }) =
         </label>
 
         <div className="mt-6 flex items-center gap-2">
-          <button className={`${btnBase} ${btnPrimary}`} onClick={onSave} disabled={saving}>
+          <button className={`${btnBase} ${btnPrimary}`} onClick={onSave} disabled={!canSave}>
             {saving ? "Saving…" : "Save"}
           </button>
           <button className={`${btnBase} ${btnGhost}`} onClick={onClose} disabled={saving}>

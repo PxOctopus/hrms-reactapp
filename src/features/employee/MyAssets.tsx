@@ -79,7 +79,7 @@ const MyAssets: React.FC = () => {
     }
   };
 
-  // NEW: Undo return request
+  // Undo return request
   const cancelReturnRequest = async (id: number) => {
     setBusyId(id);
     try {
@@ -109,7 +109,7 @@ const MyAssets: React.FC = () => {
     }
   };
 
-  // NEW: Undo issue report (BE rule: allowed for MAINTENANCE/LOST, NOT for RETIRED)
+  // Undo issue report (allowed for MAINTENANCE/LOST only)
   const cancelIssueReport = async (id: number) => {
     setBusyId(id);
     try {
@@ -123,11 +123,15 @@ const MyAssets: React.FC = () => {
     }
   };
 
+  // Helpers for UI
   const isIssueState = (s: string | AssetStatus) =>
-    s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST || s === AssetStatus.RETIRED;
+    s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST || s === AssetStatus.RETIRE_REQUESTED || s === AssetStatus.RETIRED;
 
   const canUndoIssue = (s: string | AssetStatus) =>
-    s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST; // RETIRED => terminal → undo yok
+    s === AssetStatus.MAINTENANCE || s === AssetStatus.LOST; // RETIRE_REQUESTED/RETIRED → no undo
+
+  const canRequestReturn = (s: string | AssetStatus) =>
+    s === AssetStatus.ASSIGNED || s === AssetStatus.ASSIGNED_CONFIRMED;
 
   return (
     <div className="p-6 space-y-4">
@@ -159,6 +163,7 @@ const MyAssets: React.FC = () => {
           {items.map((a) => {
             const canConfirm = a.status === "ASSIGNED" && !a.confirmed;
             const isRetired = a.status === "RETIRED";
+            const isRetireRequested = a.status === "RETIRE_REQUESTED";
             const isBusy = busyId === a.id;
             const isReturnRequested = a.status === "RETURN_REQUESTED";
             const issueState = isIssueState(a.status);
@@ -189,9 +194,13 @@ const MyAssets: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  {isRetired && (
+                  {(isRetired || isRetireRequested) && (
                     <div className="mt-1 text-xs text-gray-500">
-                      Status is <span className="font-medium">RETIRED</span>. Further changes are disabled.
+                      {isRetired ? (
+                        <>Status is <span className="font-medium">RETIRED</span>. Further changes are disabled.</>
+                      ) : (
+                        <>Retirement request is pending manager approval.</>
+                      )}
                     </div>
                   )}
                 </div>
@@ -202,41 +211,38 @@ const MyAssets: React.FC = () => {
                   <button
                     onClick={() => confirm(a.id)}
                     className={`${btnBase} ${canConfirm ? btnPrimary : "bg-gray-200 text-gray-500"}`}
-                    disabled={!canConfirm || isBusy || isRetired}
+                    disabled={!canConfirm || isBusy || isRetired || isRetireRequested}
                     title="Confirm you received this asset"
-                    aria-disabled={!canConfirm || isBusy || isRetired}
+                    aria-disabled={!canConfirm || isBusy || isRetired || isRetireRequested}
                   >
                     {isBusy && canConfirm ? "Working…" : "Confirm"}
                   </button>
 
-                  {/* Request Return / Undo Return */}
+                  {/* Request Return / Undo Return (only in ASSIGNED/ASSIGNED_CONFIRMED) */}
                   {isReturnRequested ? (
                     <button
                       onClick={() => cancelReturnRequest(a.id)}
                       className={`${btnBase} ${btnGhost}`}
-                      disabled={isBusy || isRetired}
+                      disabled={isBusy || isRetired || isRetireRequested}
                       title="Cancel return request"
                     >
                       {isBusy ? "Working…" : "Undo Return Request"}
                     </button>
                   ) : (
-                    <button
-                      onClick={() => requestReturn(a.id)}
-                      className={`${btnBase} ${btnWarn}`}
-                      disabled={isBusy || isRetired}
-                      title="Request returning the asset to inventory"
-                      aria-disabled={isBusy || isRetired}
-                    >
-                      {isBusy ? "Working…" : "Request Return"}
-                    </button>
+                    canRequestReturn(a.status) && (
+                      <button
+                        onClick={() => requestReturn(a.id)}
+                        className={`${btnBase} ${btnWarn}`}
+                        disabled={isBusy || isRetired || isRetireRequested}
+                        title="Request returning the asset to inventory"
+                        aria-disabled={isBusy || isRetired || isRetireRequested}
+                      >
+                        {isBusy ? "Working…" : "Request Return"}
+                      </button>
+                    )
                   )}
 
-                  {/* Issue flow:
-                      - Eğer issue state'te DEĞİLSE → Report Issue açılır (select + Send)
-                      - Eğer issue state'teyse:
-                          - MAINTENANCE/LOST → Undo Issue Report
-                          - RETIRED → terminal; sadece disabled rozet göstermek istersen burada buton koyma/disabled tut
-                  */}
+                  {/* Issue flow */}
                   {issueState ? (
                     undoIssue ? (
                       <button
@@ -248,55 +254,65 @@ const MyAssets: React.FC = () => {
                         {isBusy ? "Working…" : "Undo Issue Report"}
                       </button>
                     ) : (
-                      // RETIRED: undo yok; istersen tamamen gizleyebilirsin
-                      <button className={`${btnBase} ${btnGhost}`} disabled aria-disabled="true" title="Not allowed">
-                        Issue Reported
-                      </button>
-                    )
-                  ) : issueAssetId === a.id ? (
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <select
-                        className="rounded-full border px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                        value={issueType}
-                        onChange={(e) => setIssueType(e.target.value as AssetStatus)}
-                        disabled={isBusy}
-                        aria-label="Select issue type"
-                      >
-                        <option value="">Select issue type…</option>
-                        <option value={AssetStatus.MAINTENANCE}>Maintenance</option>
-                        <option value={AssetStatus.LOST}>Lost</option>
-                        <option value={AssetStatus.RETIRED}>Retired</option>
-                      </select>
-
-                      <button
-                        className={`${btnBase} ${btnInfo}`}
-                        onClick={() => issueType && reportIssue(a.id, issueType as AssetStatus)}
-                        disabled={!issueType || isBusy}
-                      >
-                        {isBusy ? "Sending…" : "Send"}
-                      </button>
-
                       <button
                         className={`${btnBase} ${btnGhost}`}
-                        onClick={() => {
-                          setIssueAssetId(null);
-                          setIssueType("");
-                        }}
-                        disabled={isBusy}
+                        disabled
+                        aria-disabled="true"
+                        title="Not allowed"
                       >
-                        Cancel
+                        {isRetireRequested ? "Retirement Requested" : "Issue Reported"}
                       </button>
-                    </div>
+                    )
                   ) : (
-                    <button
-                      onClick={() => setIssueAssetId(a.id)}
-                      className={`${btnBase} ${btnInfo}`}
-                      disabled={isBusy || isRetired}
-                      title="Report a problem with this asset"
-                      aria-disabled={isBusy || isRetired}
-                    >
-                      Report Issue
-                    </button>
+                    // Not in any "issue" state → allow reporting an issue
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {issueAssetId === a.id ? (
+                        <>
+                          <select
+                            className="rounded-full border px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                            value={issueType}
+                            onChange={(e) => setIssueType(e.target.value as AssetStatus)}
+                            disabled={isBusy}
+                            aria-label="Select issue type"
+                          >
+                            <option value="">Select issue type…</option>
+                            <option value={AssetStatus.MAINTENANCE}>Maintenance</option>
+                            <option value={AssetStatus.LOST}>Lost</option>
+                            {/* retirement must be manager approved */}
+                            <option value={AssetStatus.RETIRE_REQUESTED}>Request Retirement</option>
+                          </select>
+
+                          <button
+                            className={`${btnBase} ${btnInfo}`}
+                            onClick={() => issueType && reportIssue(a.id, issueType as AssetStatus)}
+                            disabled={!issueType || isBusy}
+                          >
+                            {isBusy ? "Sending…" : "Send"}
+                          </button>
+
+                          <button
+                            className={`${btnBase} ${btnGhost}`}
+                            onClick={() => {
+                              setIssueAssetId(null);
+                              setIssueType("");
+                            }}
+                            disabled={isBusy}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setIssueAssetId(a.id)}
+                          className={`${btnBase} ${btnInfo}`}
+                          disabled={isBusy || isRetired || isRetireRequested}
+                          title="Report a problem with this asset"
+                          aria-disabled={isBusy || isRetired || isRetireRequested}
+                        >
+                          Report Issue
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

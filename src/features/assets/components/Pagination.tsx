@@ -1,4 +1,3 @@
-// src/features/asset/components/Pagination.tsx
 import React from "react";
 
 type Props = {
