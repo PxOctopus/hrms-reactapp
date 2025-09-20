@@ -37,7 +37,7 @@ function App() {
     };
   }, [setUser]);
 
-  // Basit loading state (null yerine küçük bir placeholder daha iyi)
+
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center">

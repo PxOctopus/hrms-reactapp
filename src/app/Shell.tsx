@@ -1,5 +1,5 @@
 // src/app/Shell.tsx
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { MENU } from "../config/menu.config";
@@ -51,7 +51,6 @@ export default function Shell() {
         : i.path;
 
       const children = (i.children ?? []).filter((c) => c.roles.includes(role));
-
       return { ...i, path, children };
     }).filter(Boolean) as any[];
   }, [role]);
@@ -63,15 +62,15 @@ export default function Shell() {
   };
 
   const sideLinkBase =
-    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600";
+    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600";
+  const sideLinkIdle = "text-gray-700 hover:bg-gray-100";
+  const sideLinkActive = "bg-gray-900 text-white shadow-sm";
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside
-        className={`hidden md:flex ${
-          collapsed ? "w-20" : "w-64"
-        } flex-col border-r bg-white p-4 transition-all`}
+        className={`hidden md:flex ${collapsed ? "w-20" : "w-64"} flex-col border-r bg-white p-4 transition-all`}
       >
         {/* Brand */}
         <div className="flex items-center gap-2 px-2 py-1">
@@ -89,7 +88,14 @@ export default function Shell() {
         {/* Menu */}
         <nav className="mt-6 space-y-1">
           {items.map((item) => (
-            <SidebarItem key={item.key} item={item} collapsed={collapsed} />
+            <SidebarItem
+              key={item.key}
+              item={item}
+              collapsed={collapsed}
+              sideLinkBase={sideLinkBase}
+              sideLinkIdle={sideLinkIdle}
+              sideLinkActive={sideLinkActive}
+            />
           ))}
         </nav>
 
@@ -99,17 +105,20 @@ export default function Shell() {
           <NavLink
             to="/settings"
             className={({ isActive }) =>
-              `${sideLinkBase} ${
-                isActive ? "bg-gray-100 text-indigo-700 font-medium" : ""
-              }`
+              `${sideLinkBase} ${isActive ? sideLinkActive : sideLinkIdle}`
             }
+            aria-label="Settings"
           >
             <SettingsIcon className="h-5 w-5" />
             {!collapsed && <span>Settings</span>}
           </NavLink>
 
           {/* Logout */}
-          <button onClick={handleLogout} className={`${sideLinkBase} w-full text-left`}>
+          <button
+            onClick={handleLogout}
+            className={`${sideLinkBase} ${sideLinkIdle} w-full text-left`}
+            aria-label="Log out"
+          >
             <LogOutIcon className="h-5 w-5" />
             {!collapsed && <span>Log out</span>}
           </button>
@@ -127,54 +136,79 @@ export default function Shell() {
   );
 }
 
-function SidebarItem({ item, collapsed }: { item: any; collapsed: boolean }) {
-  const [open, setOpen] = useState(true);
+function SidebarItem({
+  item,
+  collapsed,
+  sideLinkBase,
+  sideLinkIdle,
+  sideLinkActive,
+}: {
+  item: any;
+  collapsed: boolean;
+  sideLinkBase: string;
+  sideLinkIdle: string;
+  sideLinkActive: string;
+}) {
+  const { pathname } = useLocation();
   const hasChildren = item.children?.length > 0;
   const Icon = item.icon;
 
-  return (
-    <div className="mb-1">
-      <NavLink
-        to={item.path}
-        className={({ isActive }) =>
-          `flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-gray-100 ${
-            isActive ? "bg-gray-100 text-indigo-700 font-medium" : ""
-          }`
-        }
-        onClick={
-          hasChildren
-            ? (e) => {
-                if (!open) e.preventDefault();
-                setOpen((o) => !o);
-              }
-            : undefined
-        }
-      >
-        <Icon className="h-5 w-5" />
-        {!collapsed && <span>{item.label}</span>}
-        {hasChildren && !collapsed && (
-          <span className="ml-auto">{open ? "▾" : "▸"}</span>
-        )}
-      </NavLink>
+  // parent is active if its path matches OR a child path matches
+  const childActive =
+    hasChildren && item.children.some((c: any) => pathname.startsWith(c.path));
+  const parentActive = pathname === item.path || childActive;
 
-      {hasChildren && open && !collapsed && (
-        <div className="ml-9 mt-1 space-y-1">
-          {item.children.map((c: any) => (
-            <NavLink
-              key={c.path}
-              to={c.path}
-              className={({ isActive }) =>
-                `block rounded-lg px-3 py-2 text-sm hover:bg-gray-100 ${
-                  isActive ? "bg-gray-100 text-indigo-700 font-medium" : ""
-                }`
-              }
-            >
-              {c.label}
-            </NavLink>
-          ))}
-        </div>
-      )}
-    </div>
+const [open, setOpen] = useState<boolean>(childActive); // auto-open if a child is active
+
+  if (hasChildren) {
+    return (
+      <div className="mb-1">
+        {/* Group header as a button, not a NavLink */}
+       <button
+  type="button"
+  onClick={() => setOpen((prev) => !prev)}   // implicit any çözümü
+  className={`${sideLinkBase} ${parentActive ? sideLinkActive : sideLinkIdle} w-full text-left`}
+  aria-expanded={open}
+  aria-controls={`menu-group-${item.key}`}
+>
+  <Icon className="h-5 w-5" />
+  {!collapsed && <span>{item.label}</span>}
+  {!collapsed && (
+    <span className="ml-auto select-none">{open ? "▾" : "▸"}</span>
+  )}
+</button>
+
+        {/* Children */}
+        {open && !collapsed && (
+          <div id={`menu-group-${item.key}`} className="ml-9 mt-1 space-y-1">
+            {item.children.map((c: any) => (
+              <NavLink
+                key={c.path}
+                to={c.path}
+                className={({ isActive }) =>
+                  `block ${sideLinkBase} ${isActive ? sideLinkActive : sideLinkIdle}`
+                }
+              >
+                <span>{c.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // simple leaf link
+  return (
+    <NavLink
+      to={item.path}
+      className={({ isActive }) =>
+        `${sideLinkBase} ${isActive ? sideLinkActive : sideLinkIdle}`
+      }
+    >
+      <Icon className="h-5 w-5" />
+      {!collapsed && <span>{item.label}</span>}
+    </NavLink>
   );
 }
 

@@ -93,7 +93,7 @@ export default function AdminDashboard() {
       try {
         // 1) Overview metrics (adjust endpoints to your backend)
         const metricsRes = await axios
-          .get<OverviewMetrics>("/api/admin/metrics/overview")
+          .get<OverviewMetrics>("/admin/metrics/overview")
           .catch(() => ({
             // graceful fallback data if API is not ready
             data: {
@@ -108,13 +108,13 @@ export default function AdminDashboard() {
 
         // 2) Location of the admin (country/city). Replace with what you have.
         const geoRes = await axios
-          .get<GeoInfo>("/api/utils/my-location")
+          .get<GeoInfo>("/utils/my-location")
           .catch(() => ({ data: { country: "Türkiye", city: "İstanbul" } as GeoInfo }));
         const geo = geoRes.data;
 
         // 3) Weather (prefer asking your backend, not the browser, to hide keys)
         const weatherRes = await axios
-          .get<{ tempC: number; condition: string }>("/api/utils/weather", {
+          .get<{ tempC: number; condition: string }>("/utils/weather", {
             params: geo.lat && geo.lon ? { lat: geo.lat, lon: geo.lon } : { q: `${geo.city ?? ""},${geo.country}` },
           })
           .catch(() => ({ data: { tempC: 31, condition: "Clear" } }));

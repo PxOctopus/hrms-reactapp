@@ -46,7 +46,7 @@ export default function ReviewsTable() {
 
     // Example API: /api/reviews?companyId=1&status=PUBLISHED&page=1&pageSize=10
     axios
-      .get<ApiResponse>("/api/reviews", {
+      .get<ApiResponse>("/reviews", {
         params: {
           companyId: companyId || undefined,
           status: status || undefined,

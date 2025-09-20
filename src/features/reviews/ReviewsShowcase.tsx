@@ -16,7 +16,7 @@ export default function ReviewsShowcase({ limit = 6 }: { limit?: number }) {
 
   useEffect(() => {
     axios
-      .get<Review[]>("/api/reviews/public")
+      .get<Review[]>("/reviews/public")
       .then((res) => setReviews(res.data || []))
       .catch(() => setReviews([]))
       .finally(() => setLoading(false));

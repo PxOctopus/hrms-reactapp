@@ -50,9 +50,16 @@ import AdminDashboard from "../features/admin/AdminDashboard";
 import ManagerDashboard from "../features/manager/ManagerDashboard";
 import EmployeeDashboard from "../features/employees/EmployeeDashboard";
 
+/* =========================
+   EXPENSES imports (Projects removed)
+   ========================= */
+// Employee: My expenses page
+import MyExpensesPage from "../features/expenses/pages/MyExpensesPage";
+// Manager: Review submitted expenses
+import ManagerReviewPage from "../features/expenses/pages/ManagerReviewPage";
+
 /**
- * Chooses the correct dashboard by role.
- * If user is missing or has an unexpected role, default to EmployeeDashboard.
+ * Picks dashboard by role.
  */
 function RoleDashboard() {
   const { user } = useAuth();
@@ -209,7 +216,6 @@ export default function AppRouter() {
           />
 
           {/* Assets */}
-          {/* ADDED: role-based redirect for /assets to avoid 404/bookmarks */}
           <Route
             path="/assets"
             element={
@@ -239,6 +245,40 @@ export default function AppRouter() {
             }
           />
 
+          {/* =========================
+              EXPENSES (Projects removed)
+              ========================= */}
+
+          {/* /expenses:
+              - EMPLOYEE lands on MyExpensesPage
+              - MANAGER is redirected to /expenses/review (canonical manager route)
+          */}
+          <Route
+            path="/expenses"
+            element={
+              <ProtectedRoute roles={["MANAGER", "EMPLOYEE"]}>
+                {user?.role === "MANAGER" ? (
+                  <Navigate to="/expenses/review" replace />
+                ) : (
+                  <MyExpensesPage />
+                )}
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Manager: Review submitted expenses */}
+          <Route
+            path="/expenses/review"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <ManagerReviewPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Legacy redirect for old manager bookmark */}
+          <Route path="/manager/expenses" element={<Navigate to="/expenses/review" replace />} />
+
           {/* Admin */}
           <Route
             path="/admin/pending-managers"
@@ -256,10 +296,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin"
-            element={<Navigate to="/admin/pending-reviews" replace />}
-          />
+          <Route path="/admin" element={<Navigate to="/admin/pending-reviews" replace />} />
         </Route>
 
         {/* Legacy redirects */}
