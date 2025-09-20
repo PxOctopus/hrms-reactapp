@@ -28,7 +28,7 @@ type ApiResponse = {
 
 export default function ReviewsTable() {
   const { user } = useAuth();
-  const companyId = user?.company?.id ?? 0; // ADMIN'de null olabilir, bu yüzden güvenli
+  const companyId = user?.company?.id ?? 0; 
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<ReviewRow[]>([]);

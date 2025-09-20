@@ -1,4 +1,3 @@
-// src/config/menu.config.ts
 import {
   LayoutDashboard,
   Users,
@@ -14,12 +13,12 @@ import {
 export type Role = "ADMIN" | "MANAGER" | "EMPLOYEE";
 
 export type MenuItem = {
-  key: string;               // unique stable key
-  label: string;             // text in sidebar
-  path: string;              // absolute navigation path
+  key: string;
+  label: string;
+  path: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  roles: Role[];             // who can see this item
-  children?: MenuItem[];     // optional nested items
+  roles: Role[];
+  children?: MenuItem[];
 };
 
 export const MENU: MenuItem[] = [
@@ -49,15 +48,13 @@ export const MENU: MenuItem[] = [
     icon: Umbrella,
     roles: ["MANAGER", "EMPLOYEE"],
     children: [
-      // Employee entry
       { key: "leave-request", label: "Request Leave", path: "/leaves", icon: CalendarDays, roles: ["EMPLOYEE"] },
-      // Manager entries
       { key: "leave-assign",  label: "Assign Leave",  path: "/leaves", icon: CalendarDays, roles: ["MANAGER"] },
       { key: "leave-pending", label: "Pending Leaves", path: "/pending-leaves", icon: CalendarDays, roles: ["MANAGER"] },
     ],
   },
 
-  // Shifts (shell may redirect by role to /shifts or /my-shifts)
+  // Shifts
   {
     key: "shifts",
     label: "Shifts",
@@ -71,23 +68,24 @@ export const MENU: MenuItem[] = [
   { key: "employee-assets", label: "Assets", path: "/my-assets",       icon: Package, roles: ["EMPLOYEE"] },
 
   // Expenses
-  // - EMPLOYEE: /expenses (My Expenses)
-  // - MANAGER: /expenses + child: Review Expenses
   {
-    key: "expenses",
-    label: "Expenses",
-    path: "/expenses",
-    icon: Wallet,
-    roles: ["MANAGER", "EMPLOYEE"],
-    children: [
-      { key: "manager-expenses-review", label: "Review Expenses", path: "/expenses/review", icon: Wallet, roles: ["MANAGER"] },
-    ],
+  key: "expenses",
+  label: "Expenses",
+  path: "/expenses",   // manager da employee de buraya gider
+  icon: Wallet,
+  roles: ["MANAGER", "EMPLOYEE"],
+},
+
+  // My Reviews (manager-only) — single item
+  {
+    key: "manager-my-reviews",
+    label: "My Reviews",
+    path: "/manager/reviews",
+    icon: MessageSquare,
+    roles: ["MANAGER"],
   },
 
-  // Reviews (manager-only)
-  { key: "reviews", label: "Reviews", path: "/reviews", icon: MessageSquare, roles: ["MANAGER"] },
-
-  // Admin (admin-only)
+  // Admin
   {
     key: "admin",
     label: "Admin",

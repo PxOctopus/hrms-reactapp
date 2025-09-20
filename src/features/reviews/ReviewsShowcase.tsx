@@ -1,134 +1,181 @@
-import { useEffect, useMemo, useState } from "react";
+// src/features/reviews/ReviewsShowcase.tsx
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import axios from "../../lib/axios";
 
-// Updated Review shape with rating
+// MUI Rating
+import Rating from "@mui/material/Rating";
+import StarIcon from "@mui/icons-material/Star";
+
+type ApiItem = {
+  id: number;
+  managerName?: string | null;
+  authorName?: string | null;
+  companyName?: string | null;             // <-- BE doğrudan döndürürse
+  company?: { name?: string | null } | null; // <-- ya da nested gelirse
+  content: string;
+  createdAt: string;
+  rating?: number | string | null;         // BigDecimal/string olabilir
+};
+
 type Review = {
   id: number;
   managerName: string;
+  companyName: string;   // banner’da göstereceğiz
   content: string;
   createdAt: string;
-  rating?: number; // optional, default 5
+  rating: number;        // 1..5, 0.5 adımlı
 };
 
+const toHalf = (n: number) => Math.round(n * 2) / 2;
+
+function normalize(item: ApiItem): Review {
+  const name = (item.managerName || item.authorName || "Manager").trim();
+  const brand =
+    (item.companyName ?? item.company?.name ?? "").toString().trim();
+
+  const raw = item.rating;
+  const n =
+    typeof raw === "number" ? raw : raw != null ? Number(raw) : 5;
+  const v = toHalf(isNaN(n) ? 5 : n);
+  const clamped = Math.min(5, Math.max(1, v));
+
+  return {
+    id: item.id,
+    managerName: name || "Manager",
+    companyName: brand || "YOUR COMPANY",
+    content: item.content ?? "",
+    createdAt: item.createdAt,
+    rating: clamped,
+  };
+}
+
 export default function ReviewsShowcase({ limit = 6 }: { limit?: number }) {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError, error } = useQuery<Review[]>({
+    queryKey: ["reviews", "public"],
+    queryFn: async () => {
+      const res = await axios.get<ApiItem[]>("/reviews/public");
+      const list = (res.data ?? []).map(normalize);
+      return typeof limit === "number" ? list.slice(0, limit) : list;
+    },
+  });
 
-  useEffect(() => {
-    axios
-      .get<Review[]>("/reviews/public")
-      .then((res) => setReviews(res.data || []))
-      .catch(() => setReviews([]))
-      .finally(() => setLoading(false));
-  }, []);
+  const items = useMemo(() => data ?? [], [data]);
 
-  const items = useMemo(
-    () => (limit ? reviews.slice(0, limit) : reviews),
-    [reviews, limit]
-  );
+  const getLabelText = (value: number) =>
+    `${value} Star${value !== 1 ? "s" : ""}`;
 
-  const initialsOf = (name: string) => {
-    const parts = name.split(" ").filter(Boolean);
-    if (parts.length === 0) return "∎";
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  };
-
-  // Render star row
-  const StarRow = ({ rating = 5 }: { rating?: number }) => {
-    const safe = Math.max(1, Math.min(5, Math.round(rating)));
-    return (
-      <div className="flex items-center gap-0.5" aria-label={`Rating ${safe} out of 5`}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span key={i}>{i < safe ? "⭐" : "☆"}</span>
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">What managers say</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Real experiences from HR leaders using our platform.
-          </p>
-        </div>
+        <Header />
+        <SkeletonGrid />
+      </section>
+    );
+  }
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border bg-white shadow-sm animate-pulse"
-            >
-              <div className="h-28 w-full rounded-t-2xl bg-gray-200" />
-              <div className="p-4">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gray-200" />
-                  <div className="h-3 w-24 rounded bg-gray-200" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-3 w-full rounded bg-gray-200" />
-                  <div className="h-3 w-11/12 rounded bg-gray-200" />
-                  <div className="h-3 w-10/12 rounded bg-gray-200" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+  if (isError) {
+    console.error("Failed to load public reviews:", error);
+    return (
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <Header />
+        <p className="mt-8 text-center text-gray-600">
+          We couldn’t load reviews right now.
+        </p>
       </section>
     );
   }
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-16">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight">What managers say</h2>
-        <p className="mt-3 text-gray-600">
-          Real experiences from HR leaders using our platform.
-        </p>
-      </div>
+      <Header />
 
       {items.length === 0 ? (
-        <div className="mt-10 text-center text-sm text-gray-500">No reviews yet.</div>
+        <div className="mt-10 text-center text-sm text-gray-500">
+          No reviews yet.
+        </div>
       ) : (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((r) => (
             <article
               key={r.id}
-              className="group rounded-2xl border bg-white shadow-sm transition hover:shadow-md"
+              className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-md"
             >
-              {/* Decorative header */}
-              <div className="relative h-28 w-full overflow-hidden rounded-t-2xl">
-                <div className="h-full w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50" />
-                <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-full border-2 border-white bg-gray-900 text-white grid place-items-center text-sm font-semibold">
-                  {initialsOf(r.managerName)}
+              {/* COMPANY BANNER (üst yarı) */}
+              <div className="relative h-28 w-full bg-gradient-to-r from-indigo-600 to-violet-600">
+                {/* Hafif nokta deseni */}
+                <svg aria-hidden className="absolute inset-0 h-full w-full opacity-15">
+                  <defs>
+                    <pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse">
+                      <circle cx="1" cy="1" r="1" fill="white" />
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#dots)" />
+                </svg>
+
+                <div className="absolute inset-0 flex items-center px-5">
+                  <div className="truncate text-xl font-black tracking-widest text-white/95">
+                    {r.companyName.toUpperCase()}
+                  </div>
                 </div>
               </div>
 
-              <div className="p-4 pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium text-gray-900">{r.managerName}</div>
-                  <span className="text-xs text-gray-500">
-                    {new Date(r.createdAt).toLocaleDateString()}
-                  </span>
+              {/* İçerik */}
+              <div className="p-5">
+                <div className="mb-2 flex items-center justify-between text-sm text-gray-500">
+                  <span className="font-medium text-gray-800">{r.managerName}</span>
+                  <span>{new Date(r.createdAt).toLocaleDateString()}</span>
                 </div>
 
-                {/* ⭐ rating row */}
-                <div className="mt-2">
-                  <StarRow rating={r.rating} />
-                </div>
+                {/* MUI Rating (read-only, 0.5 precision) */}
+                <Rating
+                  name={`public-rating-${r.id}`}
+                  value={r.rating}
+                  precision={0.5}
+                  readOnly
+                  getLabelText={getLabelText}
+                  emptyIcon={<StarIcon style={{ opacity: 0.35 }} fontSize="inherit" />}
+                />
 
-                {/* Review content */}
-                <p className="mt-3 text-sm leading-6 text-gray-700">
-                  “{r.content}”
-                </p>
+                <p className="mt-3 text-sm leading-6 text-gray-700">“{r.content}”</p>
               </div>
             </article>
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+/* ---------- Helpers ---------- */
+
+function Header() {
+  return (
+    <div className="text-center">
+      <h2 className="text-3xl font-bold tracking-tight">What managers say</h2>
+      <p className="mt-3 text-gray-600">
+        Real experiences from HR leaders using our platform.
+      </p>
+    </div>
+  );
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+          <div className="h-28 w-full animate-pulse bg-gray-200" />
+          <div className="p-4">
+            <div className="mb-3 h-4 w-36 animate-pulse rounded bg-gray-200" />
+            <div className="space-y-2">
+              <div className="h-3 w-full animate-pulse rounded bg-gray-200" />
+              <div className="h-3 w-11/12 animate-pulse rounded bg-gray-200" />
+              <div className="h-3 w-9/12 animate-pulse rounded bg-gray-200" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

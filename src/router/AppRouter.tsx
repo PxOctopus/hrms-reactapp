@@ -26,8 +26,8 @@ import AssignedLeavesList from "../features/leaves/AssignedLeaveList";
 import PendingLeaves from "../features/leaves/PendingLeaves";
 
 // Reviews
-import ReviewForm from "../features/reviews/ReviewForm";
-import ReviewsPage from "../features/reviews/ReviewsPage";
+import ReviewsPage from "../features/reviews/ReviewsPage"; // PUBLIC landing list (no Shell)
+import MyReviews from "../features/reviews/MyReviews";     // MANAGER page (list + drawer)
 
 // Shifts
 import ShiftManagement from "../features/shifts/ShiftManagement";
@@ -50,17 +50,10 @@ import AdminDashboard from "../features/admin/AdminDashboard";
 import ManagerDashboard from "../features/manager/ManagerDashboard";
 import EmployeeDashboard from "../features/employees/EmployeeDashboard";
 
-/* =========================
-   EXPENSES imports (Projects removed)
-   ========================= */
-// Employee: My expenses page
+// Expenses
 import MyExpensesPage from "../features/expenses/pages/MyExpensesPage";
-// Manager: Review submitted expenses
 import ManagerReviewPage from "../features/expenses/pages/ManagerReviewPage";
 
-/**
- * Picks dashboard by role.
- */
 function RoleDashboard() {
   const { user } = useAuth();
   if (user?.role === "ADMIN") return <AdminDashboard />;
@@ -74,21 +67,12 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* PUBLIC: Landing page. If already authenticated, go to dashboard */}
-        <Route
-          path="/"
-          element={user ? <Navigate to="/dashboard" replace /> : <PeopleaLanding />}
-        />
+        {/* PUBLIC: Landing */}
+        <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <PeopleaLanding />} />
 
         {/* PUBLIC: Auth */}
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/dashboard" replace /> : <Login />}
-        />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/dashboard" replace /> : <Register />}
-        />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
         <Route path="/verify" element={<EmailVerification />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -103,18 +87,10 @@ export default function AppRouter() {
           }
         />
 
-        {/* PUBLIC: Reviews listing; writing is restricted */}
+        {/* PUBLIC: Reviews landing (no Shell) */}
         <Route path="/reviews" element={<ReviewsPage />} />
-        <Route
-          path="/reviews/write"
-          element={
-            <ProtectedRoute roles={["MANAGER"]}>
-              <ReviewForm />
-            </ProtectedRoute>
-          }
-        />
 
-        {/* PRIVATE APP SHELL: everything under here requires authentication */}
+        {/* PRIVATE APP SHELL (sidebar/layout) */}
         <Route
           element={
             <ProtectedRoute>
@@ -220,11 +196,7 @@ export default function AppRouter() {
             path="/assets"
             element={
               <ProtectedRoute roles={["MANAGER", "EMPLOYEE"]}>
-                {user?.role === "MANAGER" ? (
-                  <Navigate to="/manager/assets" replace />
-                ) : (
-                  <Navigate to="/my-assets" replace />
-                )}
+                {user?.role === "MANAGER" ? <Navigate to="/manager/assets" replace /> : <Navigate to="/my-assets" replace />}
               </ProtectedRoute>
             }
           />
@@ -245,28 +217,15 @@ export default function AppRouter() {
             }
           />
 
-          {/* =========================
-              EXPENSES (Projects removed)
-              ========================= */}
-
-          {/* /expenses:
-              - EMPLOYEE lands on MyExpensesPage
-              - MANAGER is redirected to /expenses/review (canonical manager route)
-          */}
+          {/* Expenses (tek menü item; içeride role'e göre sayfa) */}
           <Route
             path="/expenses"
             element={
               <ProtectedRoute roles={["MANAGER", "EMPLOYEE"]}>
-                {user?.role === "MANAGER" ? (
-                  <Navigate to="/expenses/review" replace />
-                ) : (
-                  <MyExpensesPage />
-                )}
+                {user?.role === "MANAGER" ? <Navigate to="/expenses/review" replace /> : <MyExpensesPage />}
               </ProtectedRoute>
             }
           />
-
-          {/* Manager: Review submitted expenses */}
           <Route
             path="/expenses/review"
             element={
@@ -275,8 +234,6 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
-
-          {/* Legacy redirect for old manager bookmark */}
           <Route path="/manager/expenses" element={<Navigate to="/expenses/review" replace />} />
 
           {/* Admin */}
@@ -297,6 +254,31 @@ export default function AppRouter() {
             }
           />
           <Route path="/admin" element={<Navigate to="/admin/pending-reviews" replace />} />
+
+          {/* Manager: My Reviews (list + drawer) */}
+          <Route
+            path="/manager/reviews"
+            element={
+              <ProtectedRoute roles={["MANAGER"]}>
+                <MyReviews />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* App içinden /reviews/* tıklanırsa role'e göre yönlendir */}
+          <Route
+            path="/reviews/*"
+            element={
+              user?.role === "MANAGER" ? (
+                <Navigate to="/manager/reviews" replace />
+              ) : (
+                <Navigate to="/admin/pending-reviews" replace />
+              )
+            }
+          />
+
+          {/* Legacy */}
+          <Route path="/reviews/mine" element={<Navigate to="/manager/reviews" replace />} />
         </Route>
 
         {/* Legacy redirects */}

@@ -1,4 +1,4 @@
-import ReviewsTable from "../../features/reviews/ReviewsTable";
+import ReviewsTable from "./ReviewsTable";
 
 export default function ReviewsPage() {
   return (
